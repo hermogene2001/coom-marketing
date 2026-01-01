@@ -104,14 +104,20 @@ foreach ($products as &$product) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Netto - Products</title>
+    <title>COOM-MARKETING - Investment Products</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <style>
         :root {
-            --primary-color: #1a1d24;
-            --secondary-color: #222831;
-            --accent-color: #ffd700;
-            --text-color: #ffffff;
+            --primary-bg: #0d1117;
+            --secondary-bg: #161b22;
+            --card-bg: #1a2029;
+            --accent-color: #23a559;
+            --accent-color-light: #37c070;
+            --text-color: #e6edf3;
+            --text-secondary: #7d8590;
+            --border-color: #303841;
+            --positive: #23a559;
+            --negative: #e34c26;
         }
         
         * {
@@ -122,12 +128,13 @@ foreach ($products as &$product) {
         }
         
         body {
-            background-color: var(--primary-color);
+            background-color: var(--primary-bg);
             color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         .container {
-            max-width: 600px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 15px;
             margin-bottom: 100px;
@@ -137,8 +144,9 @@ foreach ($products as &$product) {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
+            padding: 15px 0;
             margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
         }
         
         .logo {
@@ -146,50 +154,58 @@ foreach ($products as &$product) {
             align-items: center;
             font-size: 24px;
             font-weight: bold;
+            color: var(--accent-color-light);
         }
         
         .logo i {
-            color: var(--accent-color);
+            color: var(--accent-color-light);
             margin-right: 10px;
         }
         
         .language-selector {
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 5px 10px;
-            border-radius: 15px;
+            background-color: var(--card-bg);
+            padding: 8px 12px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
+            border: 1px solid var(--border-color);
         }
         
         .purchase-log {
             text-align: right;
-            color: #ccc;
+            color: var(--text-secondary);
             margin-bottom: 15px;
             font-size: 14px;
             cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .purchase-log:hover {
+            color: var(--accent-color-light);
         }
         
         .product-card {
-            background-color: var(--secondary-color);
-            border-radius: 15px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
             display: flex;
             flex-direction: column;
             overflow: visible;
-            /* position: relative; */
+            border: 1px solid var(--border-color);
         }
         
         .product-badge {
             display: flex;
             top: 0;
             left: 0;
-            padding: 5px 15px;
-            border-bottom-right-radius: 10px;
+            padding: 8px 15px;
+            border-bottom-right-radius: 8px;
             font-size: 14px;
             font-weight: bold;
             z-index: 2;
-            background-color: #3498db;
+            background-color: var(--accent-color);
+            color: white;
         }
         
         .product-content {
@@ -200,13 +216,14 @@ foreach ($products as &$product) {
         .product-image {
             width: 80px;
             height: 80px;
-            background-color: #ffde00;
+            background-color: var(--secondary-bg);
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
+            border-radius: 8px;
             margin-right: 15px;
             overflow: hidden;
+            border: 1px solid var(--border-color);
         }
         
         .product-image img {
@@ -222,7 +239,7 @@ foreach ($products as &$product) {
         .product-stats {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 8px;
         }
         
         .product-stat {
@@ -232,55 +249,65 @@ foreach ($products as &$product) {
         }
         
         .product-stat-label {
-            color: #ccc;
+            color: var(--text-secondary);
         }
         
         .product-stat-value {
             font-weight: bold;
+            color: var(--text-color);
         }
         
         .highlight-value {
-            color: #5fd38a;
+            color: var(--accent-color-light);
         }
         
         .RWF-value {
-            color: #f5f5f5;
+            color: var(--text-secondary);
             font-size: 12px;
             margin-left: 3px;
         }
         
         .purchase-button {
             display: inline-block;
-            background-color: #000;
-            color: #fff;
-            padding: 8px 15px;
-            border-radius: 20px;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
             text-decoration: none;
             font-size: 14px;
             cursor: pointer;
             border: none;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        
+        .purchase-button:hover {
+            background-color: var(--accent-color-light);
         }
         
         .buy-now {
-            color: var(--accent-color);
+            color: white;
             margin-left: 5px;
             font-size: 12px;
         }
         
         .message {
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 10px 15px;
-            border-radius: 10px;
+            background-color: var(--card-bg);
+            padding: 12px 15px;
+            border-radius: 8px;
             margin-bottom: 20px;
             text-align: center;
+            border: 1px solid var(--border-color);
         }
         
         .success {
-            background-color: rgba(95, 211, 138, 0.2);
+            background-color: rgba(35, 165, 89, 0.2);
+            color: var(--positive);
         }
         
         .error {
-            background-color: rgba(233, 90, 137, 0.2);
+            background-color: rgba(227, 76, 38, 0.2);
+            color: var(--negative);
         }
         
         .owned-product {
@@ -292,8 +319,8 @@ foreach ($products as &$product) {
     <div class="container">
         <header>
             <div class="logo">
-                <i class="fas fa-cubes"></i>
-                Netto
+                <i class="fas fa-chart-line"></i>
+                COOM-MARKETING
             </div>
             <div class="language-selector">
                 <i class="fas fa-globe"></i>
