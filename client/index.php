@@ -17,9 +17,30 @@ $notification_query = "SELECT message FROM notifications WHERE is_active = 1 ORD
 $notification_result = $conn->query($notification_query);
 $notification = $notification_result->fetch_assoc();
 
-// Get tasks
-$tasks_query = "SELECT task_name, unlock_amount, required_level, is_locked FROM tasks ORDER BY required_level ASC";
-$tasks_result = $conn->query($tasks_query);
+// Get user's active investments
+$investments_query = "SELECT p.name as product_name, p.daily_earning, p.cycle, ip.purchase_date, ip.status
+                      FROM user_products ip
+                      JOIN products p ON ip.product_id = p.id
+                      WHERE ip.user_id = ? AND ip.status = 'active'";
+$stmt = $conn->prepare($investments_query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$investments_result = $stmt->get_result();
+
+// Get recent transactions
+$transactions_query = "SELECT type, amount, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 5";
+$stmt = $conn->prepare($transactions_query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$transactions_result = $stmt->get_result();
+
+// Get market data for trading view
+$market_data = [
+    ['name' => 'COOM-USD', 'price' => 12.45, 'change' => 2.35, 'change_type' => 'positive'],
+    ['name' => 'COOM-EUR', 'price' => 11.02, 'change' => -0.85, 'change_type' => 'negative'],
+    ['name' => 'COOM-BTC', 'price' => 0.000234, 'change' => 1.25, 'change_type' => 'positive'],
+    ['name' => 'COOM-ETH', 'price' => 0.00156, 'change' => 0.75, 'change_type' => 'positive']
+];
 ?>
 
 <!DOCTYPE html>
@@ -27,374 +48,512 @@ $tasks_result = $conn->query($tasks_query);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COOM-MARKETING Dashboard</title>
+    <title>COOM Trading - Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-bg: #1a1b20;
-            --secondary-bg: #242529;
-            --accent-color: #ffc107;
-            --text-color: #ffffff;
-            --secondary-text: #aaaaaa;
+            --primary-bg: #0d1117;
+            --secondary-bg: #161b22;
+            --card-bg: #1a2029;
+            --accent-color: #23a559;
+            --accent-color-light: #37c070;
+            --text-color: #e6edf3;
+            --text-secondary: #7d8590;
+            --border-color: #303841;
+            --positive: #23a559;
+            --negative: #e34c26;
+            --header-bg: #0d1117;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
         body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--primary-bg);
             color: var(--text-color);
             min-height: 100vh;
         }
         
-        /* Header section */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        /* Header styles */
         .header {
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 0;
+        }
+        
+        .header-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px;
-            background-color: var(--primary-bg);
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: bold;
-            font-size: 18px;
-        }
-        
-        .logo-icon {
-            background-color: var(--accent-color);
-            width: 20px;
-            height: 30px;
-            border-radius: 3px;
-        }
-        
-        .language-selector {
-            background-color: #2d2f33;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        /* Notification banner */
-        .notification-banner {
-            padding: 12px 15px;
-            background-color: var(--secondary-bg);
-            font-size: 12px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .notification-icon {
-            font-size: 18px;
-        }
-        
-        /* User section */
-        .user-section {
-            display: flex;
-            justify-content: space-between;
-            padding: 15px;
-            background-color: var(--primary-bg);
-        }
-        
-        .user-email {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 14px;
-        }
-        
-        .vip-tag {
-            background-color: var(--accent-color);
-            color: black;
-            padding: 2px 5px;
-            border-radius: 3px;
-            font-size: 10px;
-            font-weight: bold;
-        }
-        
-        .copy-icon {
-            background-color: #2d2f33;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        /* Balance section */
-        .balance-section {
-            margin: 10px 15px;
-            background-color: var(--secondary-bg);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        
-        .balance-text {
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-        
-        .balance-amount {
-            font-size: 20px;
-            font-weight: bold;
-        }
-        
-        .balance-amount span {
-            color: var(--accent-color);
-        }
-        
-        /* Quick actions */
-        .quick-actions {
-            display: flex;
-            justify-content: space-around;
-            padding: 15px;
-        }
-        
-        .action-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .action-icon {
-            width: 50px;
-            height: 50px;
-            background-color: var(--secondary-bg);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: var(--accent-color);
-        }
-        
-        .action-text {
-            font-size: 12px;
-        }
-        
-        /* Banner image */
-        .banner-image {
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-        }
-        
-        /* Countdown section */
-        .countdown-section {
-            text-align: center;
-            padding: 10px;
-        }
-        
-        .countdown-time {
             font-size: 24px;
             font-weight: bold;
-            color: var(--accent-color);
+            color: var(--accent-color-light);
         }
         
-        .countdown-text {
-            font-size: 14px;
-            margin-top: 5px;
+        .logo i {
+            margin-right: 8px;
         }
         
-        /* Task section */
-        .task-header {
-            padding: 15px;
-            font-weight: bold;
-        }
-        
-        .task-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 15px;
-            background-color: var(--secondary-bg);
-            margin-bottom: 1px;
-        }
-        
-        .task-left {
+        .user-info {
             display: flex;
             align-items: center;
             gap: 15px;
         }
         
-        .task-logo {
-            width: 40px;
-            height: 40px;
-            background-color: var(--accent-color);
-            border-radius: 5px;
+        .user-balance {
+            background-color: var(--card-bg);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .user-balance .amount {
+            color: var(--accent-color-light);
+        }
+        
+        /* Main dashboard layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            padding: 20px 0;
+        }
+        
+        /* Market data section */
+        .market-data {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .section-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .market-list {
+            padding: 0;
+        }
+        
+        .market-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .market-item:last-child {
+            border-bottom: none;
+        }
+        
+        .market-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .market-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .market-price {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .market-change {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        
+        .price {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .change {
+            font-size: 14px;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        
+        .positive {
+            color: var(--positive);
+            background-color: rgba(35, 165, 89, 0.15);
+        }
+        
+        .negative {
+            color: var(--negative);
+            background-color: rgba(227, 76, 38, 0.15);
+        }
+        
+        /* Trading chart section */
+        .trading-chart {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-container {
+            height: 300px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            color: black;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-top: 15px;
         }
         
-        .task-lock {
-            font-size: 20px;
+        .chart-placeholder {
+            text-align: center;
+            color: var(--text-secondary);
         }
         
-        .task-info {
+        .chart-placeholder i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        /* Portfolio section */
+        .portfolio-section {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .portfolio-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .portfolio-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .portfolio-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-color-light);
+        }
+        
+        .investments-list {
+            margin-top: 15px;
+        }
+        
+        .investment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .investment-item:last-child {
+            border-bottom: none;
+        }
+        
+        .investment-info {
             display: flex;
             flex-direction: column;
-            gap: 5px;
         }
         
-        .task-amount {
-            font-weight: bold;
+        .investment-name {
+            font-weight: 600;
+            margin-bottom: 4px;
         }
         
-        .task-amount span {
-            color: var(--accent-color);
+        .investment-date {
+            font-size: 13px;
+            color: var(--text-secondary);
         }
         
-        .task-level {
+        .investment-amount {
+            font-weight: 600;
+        }
+        
+        /* Quick actions sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .quick-actions-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px 10px;
+            background-color: var(--secondary-bg);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-color);
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background-color: var(--accent-color-light);
+            color: white;
+        }
+        
+        .action-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .action-text {
             font-size: 12px;
-            color: var(--secondary-text);
+            font-weight: 500;
         }
         
-        .task-arrow {
-            font-size: 22px;
+        .recent-transactions {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
         }
-        .content{
-            margin-bottom: 100px;
+        
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+        
+        .transaction-type {
+            font-weight: 500;
+        }
+        
+        .transaction-amount {
+            font-weight: 600;
+        }
+        
+        .deposit {
+            color: var(--positive);
+        }
+        
+        .withdrawal {
+            color: var(--negative);
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                order: -1;
+            }
         }
     </style>
 </head>
-
-
 <body>
     <!-- Header -->
-  <div class="content">    
-      <div class="header">
-          <div class="logo">
-              <div class="logo-icon"></div>
-              COOM-MARKETING
-            </div>
-            <div class="language-selector">
-                🌐 English
-        </div>
-    </div>
-    
-    <!-- Notification banner -->
-    <div class="notification-banner">
-        <div class="notification-icon">🔔</div>
-        <div><?php echo htmlspecialchars($notification['message'] ?? 'New Member Registration. Free 10RWF. 2 Invite friends L1 level rebate 12% L2 level rebate 6%'); ?></div>
-    </div>
-    
-    <!-- User section -->
-    <div class="user-section">
-        <div class="user-email">
-            <?php echo htmlspecialchars($user['email']); ?>
-            <div class="vip-tag">VIP<?php echo $user['vip_level']; ?></div>
-        </div>
-        <div class="copy-icon">📋</div>
-    </div>
-    
-    <!-- Balance section -->
-    <div class="balance-section">
-        <div class="balance-text">Balance</div>
-        <div class="balance-amount">RWF <span><?php echo number_format($user['balance'], 2); ?></span></div>
-    </div>
-    
-    <!-- Quick actions -->
-    <div class="quick-actions">
-        <a href="recharge.php">
-        <div class="action-item">
-            <div class="action-icon">💰</div>
-            <div class="action-text">Recharge</div>
-        </div></a>
-        <a href="withdraw.php">
-        <div class="action-item">
-            <div class="action-icon">💸</div>
-            <div class="action-text">Withdraw</div>
-        </div></a>
-        <a href="profile.php">
-        <div class="action-item">
-            <div class="action-icon">📱</div>
-            <div class="action-text">Profile</div>
-        </div></a>
-        <a href="#">
-        <div class="action-item">
-            <div class="action-icon">🏢</div>
-            <div class="action-text">Company Profile</div>
-        </div></a>
-    </div>
-    
-    <!-- Banner image -->
-    <?php
-    // $banner_query = "SELECT image_url FROM banners WHERE position = 'main' AND is_active = 1 LIMIT 1";
-    // $banner_result = $conn->query($banner_query);
-    // $banner = $banner_result->fetch_assoc();
-    ?>
-    <!-- <img src="<?php echo $banner['image_url'] ?? '/api/placeholder/500/120'; ?>" alt="COOM-MARKETING Brand Banner" class="banner-image"> -->
-    
-    <?php include 'slider.php' ?>
-    <!-- Countdown section -->
-    <div class="countdown-section">
-        <div class="countdown-time">15:02:42</div>
-        <div class="countdown-text">Task Reset Countdown</div>
-    </div>
-    
-    <!-- Task section -->
-    <div class="task-header">Task Hall</div>
-    
-    <?php while ($task = $tasks_result->fetch_assoc()): ?>
-        <div class="task-item">
-            <div class="task-left">
-                <div class="task-logo">N</div>
-                <div class="task-lock"><?php echo $task['is_locked'] ? '🔒' : '🔓'; ?></div>
-                <div class="task-info">
-                    <div class="task-amount">Unlock amount: <span>RWF <?php echo number_format($task['unlock_amount'], 2); ?></span></div>
-                    <div class="task-level"><?php echo $task['required_level'] === 0 ? 'Junior' : 'VIP' . $task['required_level']; ?></div>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-container">
+                    <div class="logo">
+                        <i class="fas fa-chart-line"></i>COOM Trading
+                    </div>
+                </div>
+                <div class="user-info">
+                    <div class="user-balance">
+                        Balance: <span class="amount">RWF <?php echo number_format($user['balance'], 2); ?></span>
+                    </div>
+                    <div class="user-email"><?php echo htmlspecialchars($user['email']); ?></div>
                 </div>
             </div>
-            <div class="task-arrow">≫</div>
         </div>
-        <?php endwhile; ?>
-    </div>   
-        
-        <script>
-            // Countdown timer
-            function updateCountdown() {
-                const countdownElement = document.querySelector('.countdown-time');
-                let time = countdownElement.textContent;
-                let [hours, minutes, seconds] = time.split(':').map(Number);
+    </header>
+    
+    <div class="container">
+        <div class="dashboard">
+            <!-- Main content area -->
+            <div class="main-content">
+                <!-- Market Data Section -->
+                <div class="market-data">
+                    <div class="section-header">
+                        <h2 class="section-title">Market Overview</h2>
+                        <div class="last-updated">Last updated: Just now</div>
+                    </div>
+                    <div class="market-list">
+                        <?php foreach ($market_data as $item): ?>
+                        <div class="market-item">
+                            <div class="market-info">
+                                <div class="market-name"><?php echo $item['name']; ?></div>
+                                <div class="market-price"><?php echo number_format($item['price'], 4); ?></div>
+                            </div>
+                            <div class="market-change">
+                                <div class="price"><?php echo number_format($item['price'], 4); ?></div>
+                                <div class="change <?php echo $item['change_type']; ?>"><?php echo ($item['change'] >= 0 ? '+' : '') . number_format($item['change'], 2); ?>%</div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
                 
-                if (seconds > 0) {
-                    seconds--;
-                } else {
-                    seconds = 59;
-                if (minutes > 0) {
-                    minutes--;
-                } else {
-                    minutes = 59;
-                    if (hours > 0) {
-                        hours--;
-                    } else {
-                        hours = 15; // Reset to initial time
-                        minutes = 0;
-                        seconds = 0;
-                    }
-                }
-            }
+                <!-- Trading Chart Section -->
+                <div class="trading-chart">
+                    <div class="section-header">
+                        <h2 class="section-title">Trading Chart</h2>
+                        <div class="chart-controls">
+                            <button class="timeframe-btn active">1D</button>
+                            <button class="timeframe-btn">1W</button>
+                            <button class="timeframe-btn">1M</button>
+                            <button class="timeframe-btn">3M</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-placeholder">
+                            <i class="fas fa-chart-line"></i>
+                            <p>Trading chart visualization</p>
+                            <p class="text-secondary">Real-time market data and trading tools</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Portfolio Section -->
+                <div class="portfolio-section">
+                    <div class="portfolio-header">
+                        <div class="portfolio-title">Your Portfolio</div>
+                        <div class="portfolio-value">RWF <?php echo number_format($user['balance'], 2); ?></div>
+                    </div>
+                    <div class="investments-list">
+                        <?php if ($investments_result->num_rows > 0): ?>
+                            <?php while ($investment = $investments_result->fetch_assoc()): ?>
+                            <div class="investment-item">
+                                <div class="investment-info">
+                                    <div class="investment-name"><?php echo htmlspecialchars($investment['product_name']); ?></div>
+                                    <div class="investment-date">Started: <?php echo date('M j, Y', strtotime($investment['purchase_date'])); ?></div>
+                                </div>
+                                <div class="investment-amount"><?php echo number_format($investment['daily_earning'], 2); ?>/day</div>
+                            </div>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <div class="investment-item">
+                                <div class="investment-info">
+                                    <div class="investment-name">No active investments</div>
+                                    <div class="investment-date">Start trading to see your portfolio</div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
             
-            countdownElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
-        
-        // Update countdown every second
-        setInterval(updateCountdown, 1000);
-        </script>
+            <!-- Sidebar with quick actions and recent transactions -->
+            <div class="sidebar">
+                <!-- Quick Actions Card -->
+                <div class="quick-actions-card">
+                    <h3>Quick Actions</h3>
+                    <div class="actions-grid">
+                        <a href="recharge.php" class="action-btn">
+                            <div class="action-icon"><i class="fas fa-plus"></i></div>
+                            <div class="action-text">Deposit</div>
+                        </a>
+                        <a href="withdraw.php" class="action-btn">
+                            <div class="action-icon"><i class="fas fa-minus"></i></div>
+                            <div class="action-text">Withdraw</div>
+                        </a>
+                        <a href="products.php" class="action-btn">
+                            <div class="action-icon"><i class="fas fa-chart-pie"></i></div>
+                            <div class="action-text">Invest</div>
+                        </a>
+                        <a href="profile.php" class="action-btn">
+                            <div class="action-icon"><i class="fas fa-user"></i></div>
+                            <div class="action-text">Profile</div>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Recent Transactions Card -->
+                <div class="recent-transactions">
+                    <h3>Recent Transactions</h3>
+                    <?php if ($transactions_result->num_rows > 0): ?>
+                        <?php while ($transaction = $transactions_result->fetch_assoc()): ?>
+                        <div class="transaction-item">
+                            <div class="transaction-type"><?php echo ucfirst($transaction['type']); ?></div>
+                            <div class="transaction-amount <?php echo $transaction['type']; ?>"><?php echo number_format($transaction['amount'], 2); ?></div>
+                        </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <div class="transaction-item">
+                            <div class="transaction-type">No recent transactions</div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update market data periodically
+        setInterval(function() {
+            // In a real implementation, this would fetch updated market data
+            // For now, we'll just update the 'last updated' time
+            document.querySelector('.last-updated').textContent = 'Last updated: Just now';
+        }, 30000); // Update every 30 seconds
+
+        // Timeframe button interaction
+        const timeframeButtons = document.querySelectorAll('.timeframe-btn');
+        timeframeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                timeframeButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
 </body>
 </html>
