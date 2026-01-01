@@ -1,6 +1,7 @@
 <?php
 session_start();
 include '../includes/db_connection.php';
+include 'nav.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -8,26 +9,15 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Get user ID from session
+// Get user data
 $user_id = $_SESSION['user_id'];
 
-// Get basic account transactions (deposits and bonuses)
-$basic_query = "SELECT * FROM transactions 
-               WHERE user_id = ? AND (type = 'deposit' OR type = 'bonus')
-               ORDER BY created_at DESC LIMIT 10";
-$basic_stmt = $conn->prepare($basic_query);
-$basic_stmt->bind_param("i", $user_id);
-$basic_stmt->execute();
-$basic_result = $basic_stmt->get_result();
-
-// Get withdrawal transactions
-$withdrawal_query = "SELECT * FROM transactions 
-                    WHERE user_id = ? AND type = 'withdrawal'
-                    ORDER BY created_at DESC LIMIT 10";
-$withdrawal_stmt = $conn->prepare($withdrawal_query);
-$withdrawal_stmt->bind_param("i", $user_id);
-$withdrawal_stmt->execute();
-$withdrawal_result = $withdrawal_stmt->get_result();
+// Get all transactions for the user
+$transactions_query = "SELECT type, amount, created_at, description FROM transactions WHERE user_id = ? ORDER BY created_at DESC";
+$stmt = $conn->prepare($transactions_query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$transactions_result = $stmt->get_result();
 ?>
 
 <!DOCTYPE html>
@@ -35,265 +25,250 @@ $withdrawal_result = $withdrawal_stmt->get_result();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Details</title>
+    <title>COOM-MARKETING - Transaction Records</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-bg: #0d1117;
+            --secondary-bg: #161b22;
+            --card-bg: #1a2029;
+            --accent-color: #23a559;
+            --accent-color-light: #37c070;
+            --text-color: #e6edf3;
+            --text-secondary: #7d8590;
+            --border-color: #303841;
+            --positive: #23a559;
+            --negative: #e34c26;
+            --header-bg: #0d1117;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         body {
-            background-color: #1e2430;
-            color: white;
-            max-width: 600px;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding-top: 80px;
+        }
+        
+        .container {
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 15px;
+            padding: 20px 15px;
         }
         
-        .tabs {
-            display: flex;
-            margin-bottom: 15px;
-            border-bottom: 1px solid #383f4e;
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
         }
         
-        .tab {
-            padding: 15px 0;
-            margin-right: 30px;
-            font-size: 15px;
-            position: relative;
-            cursor: pointer;
+        .page-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: var(--accent-color-light);
         }
         
-        .tab.active {
-            color: #f3b71b;
-            font-weight: bold;
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 16px;
         }
         
-        .tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background-color: #f3b71b;
+        .records-list {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
         }
         
-        .tab.inactive {
-            color: #7a8599;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .transaction-card {
-            background-color: #262d3d;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-        
-        .transaction-row {
+        .record-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
         }
         
-        .transaction-info {
+        .record-item:last-child {
+            border-bottom: none;
+        }
+        
+        .record-info {
             flex: 1;
         }
         
-        .transaction-label {
+        .record-type {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .record-description {
+            color: var(--text-secondary);
             font-size: 14px;
             margin-bottom: 5px;
         }
         
-        .transaction-type {
-            color: #7a8599;
-            font-size: 12px;
-            text-transform: capitalize;
-        }
-        
-        .transaction-amount {
-            font-weight: bold;
-            text-align: right;
-        }
-        
-        .amount-positive {
-            color: #4CAF50;
-        }
-        
-        .amount-negative {
-            color: #f44336;
-        }
-        
-        .transaction-date {
-            color: #7a8599;
-            font-size: 12px;
-        }
-        
-        .transaction-status {
-            font-size: 12px;
-            padding: 2px 8px;
-            border-radius: 4px;
-            text-transform: capitalize;
-        }
-        
-        .status-pending {
-            background-color: #FFC107;
-            color: #1e2430;
-        }
-        
-        .status-completed {
-            background-color: #4CAF50;
-            color: white;
-        }
-        
-        .status-failed {
-            background-color: #f44336;
-            color: white;
-        }
-        
-        .no-data {
-            text-align: center;
-            color: #7a8599;
-            padding: 30px 0;
+        .record-date {
+            color: var(--text-secondary);
             font-size: 14px;
         }
-        .header {
+        
+        .record-amount {
+            font-weight: bold;
+            font-size: 16px;
+            align-self: center;
+        }
+        
+        .deposit {
+            color: var(--positive);
+        }
+        
+        .withdrawal {
+            color: var(--negative);
+        }
+        
+        .investment {
+            color: var(--accent-color-light);
+        }
+        
+        .referral {
+            color: #3498db;
+        }
+        
+        .no-records {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        
+        .search-filter {
             display: flex;
             justify-content: space-between;
+            margin-bottom: 20px;
             align-items: center;
-            padding: 15px;
-            background-color: #1e2430;
-            position: sticky;
-            top: 0;
-            z-index: 100;
         }
         
-        .logo {
-            display: flex;
-            align-items: center;
-            font-size: 18px;
-            font-weight: bold;
+        .search-box {
+            flex: 1;
+            max-width: 300px;
         }
         
-        .logo-icon {
-            width: 24px;
-            height: 24px;
-            background-color: #f3b71b;
-            border-radius: 4px;
-            margin-right: 8px;
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--secondary-bg);
+            color: var(--text-color);
         }
         
-        .back-btn {
-            color: white;
-            text-decoration: none;
-            font-size: 24px;
-            margin-right: 10px;
+        .filter-select {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--secondary-bg);
+            color: var(--text-color);
+            margin-left: 15px;
+        }
+        
+        .total-records {
+            background-color: var(--secondary-bg);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            color: var(--text-secondary);
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <a href="myaccount.php" class="back-btn">‹</a>
-        <div class="logo">
-            <div class="logo-icon"></div>
-            <div>Financial records</div>
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-file-invoice-dollar"></i> Transaction Records</h1>
+            <p>View all your transaction history</p>
         </div>
-        <div style="width: 24px;"></div> <!-- Spacer for balance -->
-    </div>
-    <div class="tabs">
-        <div class="tab active" data-tab="basic">Basic account</div>
-        <div class="tab inactive" data-tab="withdrawal">Withdrawal account</div>
-    </div>
-    
-    <div id="basic-content" class="tab-content active">
-        <?php if ($basic_result->num_rows > 0): ?>
-            <?php while ($transaction = $basic_result->fetch_assoc()): ?>
-                <div class="transaction-card">
-                    <div class="transaction-row">
-                        <div class="transaction-info">
-                            <div class="transaction-label"><?php echo htmlspecialchars($transaction['description']); ?></div>
-                            <div class="transaction-type"><?php echo htmlspecialchars($transaction['type']); ?></div>
-                            <div class="transaction-status status-<?php echo htmlspecialchars($transaction['status']); ?>">
-                                <?php echo htmlspecialchars($transaction['status']); ?>
-                            </div>
+        
+        <div class="search-filter">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search transactions...">
+            </div>
+            <select class="filter-select" id="filterSelect">
+                <option value="">All Types</option>
+                <option value="deposit">Deposit</option>
+                <option value="withdrawal">Withdrawal</option>
+                <option value="investment">Investment</option>
+                <option value="referral">Referral</option>
+            </select>
+        </div>
+        
+        <div class="records-list">
+            <h3 style="margin-bottom: 20px; color: var(--accent-color-light);">All Transactions</h3>
+            <?php if ($transactions_result->num_rows > 0): ?>
+                <?php while ($transaction = $transactions_result->fetch_assoc()): ?>
+                    <div class="record-item" data-type="<?php echo $transaction['type']; ?>">
+                        <div class="record-info">
+                            <div class="record-type"><?php echo ucfirst($transaction['type']); ?></div>
+                            <div class="record-description"><?php echo htmlspecialchars($transaction['description'] ?? 'No description'); ?></div>
+                            <div class="record-date"><?php echo date('M j, Y g:i A', strtotime($transaction['created_at'])); ?></div>
                         </div>
-                        <div class="transaction-amount amount-positive">
-                            +<?php echo number_format($transaction['amount'], 2); ?> RWF
+                        <div class="record-amount <?php echo $transaction['type']; ?>">
+                            <?php if (in_array($transaction['type'], ['deposit', 'investment', 'referral_bonus'])): ?>
+                                +RWF <?php echo number_format($transaction['amount'], 2); ?>
+                            <?php else: ?>
+                                -RWF <?php echo number_format($transaction['amount'], 2); ?>
+                            <?php endif; ?>
                         </div>
                     </div>
-                    <div class="transaction-date">
-                        <?php echo date('d/m/Y H:i:s', strtotime($transaction['created_at'])); ?>
-                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <div class="no-records">
+                    <i class="fas fa-file-alt" style="font-size: 48px; margin-bottom: 15px;"></i>
+                    <h3>No transaction records</h3>
+                    <p>You don't have any transaction history yet</p>
                 </div>
-            <?php endwhile; ?>
-        <?php else: ?>
-            <div class="no-data">No transactions available</div>
-        <?php endif; ?>
-    </div>
-    
-    <div id="withdrawal-content" class="tab-content">
-        <?php if ($withdrawal_result->num_rows > 0): ?>
-            <?php while ($transaction = $withdrawal_result->fetch_assoc()): ?>
-                <div class="transaction-card">
-                    <div class="transaction-row">
-                        <div class="transaction-info">
-                            <div class="transaction-label">Withdrawal request</div>
-                            <div class="transaction-type">withdrawal</div>
-                            <div class="transaction-status status-<?php echo htmlspecialchars($transaction['status']); ?>">
-                                <?php echo htmlspecialchars($transaction['status']); ?>
-                            </div>
-                        </div>
-                        <div class="transaction-amount amount-negative">
-                            -<?php echo number_format($transaction['amount'], 2); ?> RWF
-                        </div>
-                    </div>
-                    <div class="transaction-date">
-                        <?php echo date('d/m/Y H:i:s', strtotime($transaction['created_at'])); ?>
-                    </div>
-                </div>
-            <?php endwhile; ?>
-        <?php else: ?>
-            <div class="no-data">No withdrawal transactions available</div>
-        <?php endif; ?>
+            <?php endif; ?>
+            
+            <div class="total-records">
+                Total Transactions: <?php echo $transactions_result->num_rows; ?>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Get all tab elements
-        const tabs = document.querySelectorAll('.tab');
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const records = document.querySelectorAll('.record-item');
+            
+            records.forEach(record => {
+                const type = record.querySelector('.record-type').textContent.toLowerCase();
+                const description = record.querySelector('.record-description').textContent.toLowerCase();
+                
+                if (type.includes(searchTerm) || description.includes(searchTerm)) {
+                    record.style.display = '';
+                } else {
+                    record.style.display = 'none';
+                }
+            });
+        });
         
-        // Add click event listener to each tab
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                // Remove active class from all tabs
-                tabs.forEach(t => {
-                    t.classList.remove('active');
-                    t.classList.add('inactive');
-                });
+        // Filter functionality
+        document.getElementById('filterSelect').addEventListener('change', function() {
+            const filterValue = this.value;
+            const records = document.querySelectorAll('.record-item');
+            
+            records.forEach(record => {
+                const recordType = record.getAttribute('data-type');
                 
-                // Add active class to clicked tab
-                tab.classList.add('active');
-                tab.classList.remove('inactive');
-                
-                // Hide all tab content
-                const tabContents = document.querySelectorAll('.tab-content');
-                tabContents.forEach(content => {
-                    content.classList.remove('active');
-                });
-                
-                // Show the selected tab content
-                const tabName = tab.getAttribute('data-tab');
-                document.getElementById(`${tabName}-content`).classList.add('active');
+                if (filterValue === '' || recordType === filterValue) {
+                    record.style.display = '';
+                } else {
+                    record.style.display = 'none';
+                }
             });
         });
     </script>

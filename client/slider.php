@@ -1,229 +1,261 @@
-<!-- Banner slider -->
 <?php
-// Fetch active sliders from the database
-$slider_query = "SELECT id, title, description, image_name, order_number 
-                FROM banner_sliders 
-                WHERE position = 'main' AND is_active = 1 
-                ORDER BY order_number ASC";
-$slider_result = $conn->query($slider_query);
+session_start();
+include '../includes/db_connection.php';
+include 'nav.php';
 
-// Check if we have slider images
-$has_sliders = $slider_result && $slider_result->num_rows > 0;
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Get user data
+$user_id = $_SESSION['user_id'];
+$query = "SELECT * FROM users WHERE id = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+
+// Get active products
+$products_query = "SELECT * FROM products WHERE status = 'active' ORDER BY price ASC";
+$products_result = $conn->query($products_query);
 ?>
 
-<div class="banner-slider-container">
-    <?php if ($has_sliders): ?>
-        <div class="banner-slider">
-            <?php 
-            // Counter for slider indicators
-            $slide_count = 0;
-            while ($slide = $slider_result->fetch_assoc()): 
-                $slide_count++;
-            ?>
-                <div class="slide" id="slide-<?php echo $slide['id']; ?>">
-                    <img src="../uploads/banners/<?php echo htmlspecialchars($slide['image_name']); ?>" 
-                         alt="<?php echo htmlspecialchars($slide['title']); ?>" 
-                         class="slider-image">
-                    <?php if (!empty($slide['title']) || !empty($slide['description'])): ?>
-                        <div class="slide-content">
-                            <?php if (!empty($slide['title'])): ?>
-                                <h2><?php echo htmlspecialchars($slide['title']); ?></h2>
-                            <?php endif; ?>
-                            <?php if (!empty($slide['description'])): ?>
-                                <p><?php echo htmlspecialchars($slide['description']); ?></p>
-                            <?php endif; ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COOM-MARKETING - Investment Products</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-bg: #0d1117;
+            --secondary-bg: #161b22;
+            --card-bg: #1a2029;
+            --accent-color: #23a559;
+            --accent-color-light: #37c070;
+            --text-color: #e6edf3;
+            --text-secondary: #7d8590;
+            --border-color: #303841;
+            --positive: #23a559;
+            --negative: #e34c26;
+            --header-bg: #0d1117;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding-top: 80px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 15px;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .page-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: var(--accent-color-light);
+        }
+        
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+        
+        .user-balance {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .balance-label {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .balance-amount {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--accent-color-light);
+        }
+        
+        .products-slider {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 10px 0 30px 0;
+            margin-bottom: 30px;
+        }
+        
+        .product-cards {
+            display: inline-flex;
+            gap: 20px;
+            padding: 10px;
+        }
+        
+        .product-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            width: 300px;
+            display: inline-block;
+            vertical-align: top;
+            border: 1px solid var(--border-color);
+        }
+        
+        .product-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--accent-color-light);
+        }
+        
+        .product-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 15px;
+        }
+        
+        .product-features {
+            margin-bottom: 20px;
+        }
+        
+        .feature-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .feature-label {
+            color: var(--text-secondary);
+        }
+        
+        .feature-value {
+            font-weight: 500;
+        }
+        
+        .purchase-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .purchase-btn:hover {
+            background-color: var(--accent-color-light);
+        }
+        
+        .purchase-btn:disabled {
+            background-color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+        
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .no-products {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        
+        @media (max-width: 768px) {
+            .product-cards {
+                flex-direction: column;
+            }
+            
+            .product-card {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-chart-line"></i> Investment Products</h1>
+            <p>Choose from our premium investment packages</p>
+        </div>
+        
+        <div class="user-balance">
+            <div class="balance-label">Your Balance</div>
+            <div class="balance-amount">RWF <?php echo number_format($user['balance'], 2); ?></div>
+        </div>
+        
+        <div class="products-slider">
+            <div class="product-cards">
+                <?php if ($products_result->num_rows > 0): ?>
+                    <?php while ($product = $products_result->fetch_assoc()): ?>
+                        <div class="product-card">
+                            <div class="product-name"><?php echo htmlspecialchars($product['name']); ?></div>
+                            <div class="product-price">RWF <?php echo number_format($product['price'], 2); ?></div>
+                            <div class="product-features">
+                                <div class="feature-item">
+                                    <span class="feature-label">Daily Earning:</span>
+                                    <span class="feature-value">RWF <?php echo number_format($product['daily_earning'], 2); ?></span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-label">Profit Rate:</span>
+                                    <span class="feature-value"><?php echo $product['profit_rate']; ?>%</span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-label">Cycle:</span>
+                                    <span class="feature-value"><?php echo $product['cycle']; ?> days</span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-label">Total Profit:</span>
+                                    <span class="feature-value">RWF <?php echo number_format($product['daily_earning'] * $product['cycle'], 2); ?></span>
+                                </div>
+                            </div>
+                            <form action="products.php" method="post" style="display: inline;">
+                                <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                                <button type="submit" name="purchase_product" class="purchase-btn" <?php echo ($user['balance'] < $product['price']) ? 'disabled' : ''; ?>>
+                                    <?php echo ($user['balance'] < $product['price']) ? 'Insufficient Funds' : 'Invest Now'; ?>
+                                </button>
+                            </form>
                         </div>
-                    <?php endif; ?>
-                </div>
-            <?php endwhile; ?>
-            
-            <!-- Navigation arrows -->
-            <button class="slider-nav prev" onclick="moveSlide(-1)">&#10094;</button>
-            <button class="slider-nav next" onclick="moveSlide(1)">&#10095;</button>
-            
-            <!-- Slide indicators -->
-            <div class="slider-indicators">
-                <?php for ($i = 1; $i <= $slide_count; $i++): ?>
-                    <span class="indicator" onclick="goToSlide(<?php echo $i; ?>)"></span>
-                <?php endfor; ?>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div class="no-products">
+                        <i class="fas fa-box-open" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <h3>No investment products available</h3>
+                        <p>Please check back later for new investment opportunities</p>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
-    <?php else: ?>
-        <!-- Fallback if no sliders are available -->
-        <img src="/api/placeholder/1200/300" alt="Banner Placeholder" class="banner-image">
-    <?php endif; ?>
-</div>
-
-<!-- JavaScript for Slider Functionality -->
-<script>
-let currentSlide = 1;
-const totalSlides = <?php echo $has_sliders ? $slide_count : 0; ?>;
-
-// Initialize the slider
-document.addEventListener("DOMContentLoaded", function() {
-    if (totalSlides > 0) {
-        showSlide(currentSlide);
-        // Auto-rotate slides every 5 seconds
-        setInterval(() => {
-            moveSlide(1);
-        }, 5000);
-    }
-});
-
-function moveSlide(n) {
-    showSlide(currentSlide += n);
-}
-
-function goToSlide(n) {
-    showSlide(currentSlide = n);
-}
-
-function showSlide(n) {
-    const slides = document.querySelectorAll('.slide');
-    const indicators = document.querySelectorAll('.indicator');
-    
-    if (n > slides.length) { currentSlide = 1; }
-    if (n < 1) { currentSlide = slides.length; }
-    
-    // Hide all slides
-    for (let i = 0; i < slides.length; i++) {
-        slides[i].style.display = "none";
-    }
-    
-    // Remove active class from all indicators
-    for (let i = 0; i < indicators.length; i++) {
-        indicators[i].classList.remove("active");
-    }
-    
-    // Show the current slide and activate its indicator
-    slides[currentSlide - 1].style.display = "block";
-    indicators[currentSlide - 1].classList.add("active");
-}
-</script>
-
-<!-- CSS for Slider -->
-<style>
-.banner-slider-container {
-    display: flex;
-    /* flex-direction: column; */
-    /* overflow: visible; */
-    width: 80%;
-    height: 40%;
-    max-width: 1200px;
-    margin: 0 auto;
-    overflow: hidden;
-}
-
-.banner-slider {
-    position: relative;
-}
-
-.slide {
-    display: none;
-    width: 100%;
-    position: relative;
-}
-
-.slider-image {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
-.slide-content {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
-    padding: 15px;
-    max-width: 50%;
-    border-radius: 5px;
-}
-
-.slide-content h2 {
-    margin: 0 0 10px 0;
-    font-size: 1.5rem;
-}
-
-.slide-content p {
-    margin: 0;
-    font-size: 1rem;
-}
-
-.slider-nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: none;
-    cursor: pointer;
-    padding: 15px;
-    font-size: 18px;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    transition: background-color 0.3s;
-}
-
-.slider-nav:hover {
-    background-color: rgba(0, 0, 0, 0.8);
-}
-
-.prev {
-    left: 15px;
-}
-
-.next {
-    right: 15px;
-}
-
-.slider-indicators {
-    position: absolute;
-    bottom: 15px;
-    width: 100%;
-    text-align: center;
-    z-index: 10;
-}
-
-.indicator {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    margin: 0 5px;
-    background-color: rgba(255, 255, 255, 0.5);
-    border-radius: 50%;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.indicator.active {
-    background-color: white;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .slide-content {
-        max-width: 80%;
-        bottom: 10px;
-        left: 10px;
-        padding: 10px;
-    }
-    
-    .slide-content h2 {
-        font-size: 1.2rem;
-    }
-    
-    .slider-nav {
-        padding: 10px;
-        font-size: 16px;
-        width: 40px;
-        height: 40px;
-    }
-}
-</style>
+    </div>
+</body>
+</html>

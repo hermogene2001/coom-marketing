@@ -1,6 +1,7 @@
 <?php
 session_start();
 include '../includes/db_connection.php';
+include 'nav.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -8,26 +9,21 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Initialize variables
-$error = '';
-$success = '';
+$user_id = $_SESSION['user_id'];
 
-// Process form submission
+// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $current_password = $_POST['current_password'];
     $new_password = $_POST['new_password'];
     $confirm_password = $_POST['confirm_password'];
     
-    // Validate inputs
-    if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
-        $error = 'All fields are required';
-    } elseif ($new_password !== $confirm_password) {
-        $error = 'New passwords do not match';
-    } elseif (strlen($new_password) < 8) {
-        $error = 'Password must be at least 8 characters';
+    // Validate passwords
+    if ($new_password !== $confirm_password) {
+        $error = "New passwords do not match";
+    } elseif (strlen($new_password) < 6) {
+        $error = "New password must be at least 6 characters long";
     } else {
-        // Verify current password
-        $user_id = $_SESSION['user_id'];
+        // Get current password hash
         $query = "SELECT password FROM users WHERE id = ?";
         $stmt = $conn->prepare($query);
         $stmt->bind_param("i", $user_id);
@@ -35,33 +31,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = $stmt->get_result();
         $user = $result->fetch_assoc();
         
+        // Verify current password
         if (password_verify($current_password, $user['password'])) {
             // Update password
             $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
             $update_query = "UPDATE users SET password = ? WHERE id = ?";
-            $update_stmt = $conn->prepare($update_query);
-            $update_stmt->bind_param("si", $hashed_password, $user_id);
+            $stmt = $conn->prepare($update_query);
+            $stmt->bind_param("si", $hashed_password, $user_id);
             
-            if ($update_stmt->execute()) {
-                $success = 'Password changed successfully!';
+            if ($stmt->execute()) {
+                $success = "Password changed successfully!";
             } else {
-                $error = 'Failed to update password';
+                $error = "Failed to update password: " . $conn->error;
             }
         } else {
-            $error = 'Current password is incorrect';
+            $error = "Current password is incorrect";
         }
     }
 }
-
-// Get user data for header
-$user_query = "SELECT first_name, last_name, vip_level FROM users WHERE id = ?";
-$stmt = $conn->prepare($user_query);
-$stmt->bind_param("i", $_SESSION['user_id']);
-$stmt->execute();
-$user_result = $stmt->get_result();
-$user = $user_result->fetch_assoc();
-$user_name = htmlspecialchars($user['first_name'] . ' ' . $user['last_name']);
-$vip_level = $user['vip_level'] ?? 0;
 ?>
 
 <!DOCTYPE html>
@@ -69,62 +56,69 @@ $vip_level = $user['vip_level'] ?? 0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Change Password | Coom Marketing Wallet</title>
+    <title>COOM-MARKETING - Change Password</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-bg: #0d1117;
+            --secondary-bg: #161b22;
+            --card-bg: #1a2029;
+            --accent-color: #23a559;
+            --accent-color-light: #37c070;
+            --text-color: #e6edf3;
+            --text-secondary: #7d8590;
+            --border-color: #303841;
+            --positive: #23a559;
+            --negative: #e34c26;
+            --header-bg: #0d1117;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         body {
-            background-color: #1e2430;
-            color: white;
-            max-width: 480px;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding-top: 80px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 15px;
+        }
+        
+        .password-container {
+            max-width: 600px;
             margin: 0 auto;
         }
         
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background-color: #1e2430;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
         }
         
-        .logo {
-            display: flex;
-            align-items: center;
-            font-size: 18px;
-            font-weight: bold;
+        .page-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: var(--accent-color-light);
         }
         
-        .logo-icon {
-            width: 24px;
-            height: 24px;
-            background-color: #f3b71b;
-            border-radius: 4px;
-            margin-right: 8px;
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 16px;
         }
         
-        .back-btn {
-            color: white;
-            text-decoration: none;
-            font-size: 24px;
-            margin-right: 10px;
-        }
-        
-        .content-container {
-            padding: 20px;
-        }
-        
-        .password-form {
-            max-width: 400px;
-            margin: 0 auto;
+        .form-container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid var(--border-color);
         }
         
         .form-group {
@@ -134,89 +128,168 @@ $vip_level = $user['vip_level'] ?? 0;
         label {
             display: block;
             margin-bottom: 8px;
-            color: #ccc;
-            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
         }
         
         input {
             width: 100%;
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #2a3547;
-            background-color: #2a3547;
-            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--secondary-bg);
+            color: var(--text-color);
             font-size: 16px;
         }
         
         .submit-btn {
-            background-color: #4CAF50;
+            background-color: var(--accent-color);
             color: white;
             border: none;
             padding: 14px 20px;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             width: 100%;
             font-size: 16px;
-            margin-top: 10px;
             font-weight: bold;
+            margin-top: 10px;
+            transition: background-color 0.3s;
         }
         
         .submit-btn:hover {
-            background-color: #45a049;
+            background-color: var(--accent-color-light);
         }
         
         .error-message {
-            color: #ff6b6b;
+            color: var(--negative);
             margin-bottom: 15px;
             text-align: center;
+            padding: 10px;
+            background-color: rgba(227, 76, 38, 0.1);
+            border-radius: 8px;
         }
         
         .success-message {
-            color: #4CAF50;
+            color: var(--positive);
             margin-bottom: 15px;
             text-align: center;
+            padding: 10px;
+            background-color: rgba(35, 165, 89, 0.1);
+            border-radius: 8px;
+        }
+        
+        .password-requirements {
+            background-color: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .requirement {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .requirement i {
+            margin-right: 8px;
+        }
+        
+        .requirement.valid {
+            color: var(--positive);
+        }
+        
+        .requirement.invalid {
+            color: var(--text-secondary);
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <a href="myaccount.php" class="back-btn">‹</a>
-        <div class="logo">
-            <div class="logo-icon"></div>
-            <div>Change Password</div>
-        </div>
-        <div style="width: 24px;"></div> <!-- Spacer for balance -->
-    </div>
-    
-    <div class="content-container">
-        <div class="password-form">
-            <?php if (!empty($error)): ?>
+    <div class="container">
+        <div class="password-container">
+            <div class="page-header">
+                <h1><i class="fas fa-lock"></i> Change Password</h1>
+                <p>Secure your account with a new password</p>
+            </div>
+            
+            <?php if (isset($error)): ?>
                 <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
             <?php endif; ?>
             
-            <?php if (!empty($success)): ?>
+            <?php if (isset($success)): ?>
                 <div class="success-message"><?php echo htmlspecialchars($success); ?></div>
             <?php endif; ?>
             
-            <form action="change_password.php" method="post">
-                <div class="form-group">
-                    <label for="current_password">Old Password</label>
-                    <input type="password" id="current_password" name="current_password" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="new_password">New Password</label>
-                    <input type="password" id="new_password" name="new_password" required minlength="8">
-                </div>
-                
-                <div class="form-group">
-                    <label for="confirm_password">Reenter new password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
-                </div>
-                
-                <button type="submit" class="submit-btn">Confirm</button>
-            </form>
+            <div class="form-container">
+                <form action="change_password.php" method="post">
+                    <div class="form-group">
+                        <label for="current_password">Current Password</label>
+                        <input type="password" id="current_password" name="current_password" placeholder="Enter current password" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="new_password">New Password</label>
+                        <input type="password" id="new_password" name="new_password" placeholder="Enter new password" required>
+                        <div class="password-requirements">
+                            <div class="requirement" id="length-req">
+                                <i class="fas fa-circle"></i>
+                                At least 6 characters long
+                            </div>
+                            <div class="requirement" id="match-req">
+                                <i class="fas fa-circle"></i>
+                                Must match confirmation
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm New Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm new password" required>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">Change Password</button>
+                </form>
+            </div>
         </div>
     </div>
+
+    <script>
+        // Password validation
+        const newPasswordInput = document.getElementById('new_password');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        const lengthReq = document.getElementById('length-req');
+        const matchReq = document.getElementById('match-req');
+        
+        function validatePassword() {
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            // Check length
+            if (newPassword.length >= 6) {
+                lengthReq.classList.add('valid');
+                lengthReq.classList.remove('invalid');
+                lengthReq.querySelector('i').className = 'fas fa-check';
+            } else {
+                lengthReq.classList.add('invalid');
+                lengthReq.classList.remove('valid');
+                lengthReq.querySelector('i').className = 'fas fa-circle';
+            }
+            
+            // Check if passwords match
+            if (newPassword === confirmPassword && newPassword.length > 0) {
+                matchReq.classList.add('valid');
+                matchReq.classList.remove('invalid');
+                matchReq.querySelector('i').className = 'fas fa-check';
+            } else {
+                matchReq.classList.add('invalid');
+                matchReq.classList.remove('valid');
+                matchReq.querySelector('i').className = 'fas fa-circle';
+            }
+        }
+        
+        newPasswordInput.addEventListener('input', validatePassword);
+        confirmPasswordInput.addEventListener('input', validatePassword);
+    </script>
 </body>
 </html>

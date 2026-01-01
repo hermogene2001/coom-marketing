@@ -1,10 +1,64 @@
+<?php
+session_start();
+include '../includes/db_connection.php';
+include 'nav.php';
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Get user data
+$user_id = $_SESSION['user_id'];
+$query = "SELECT * FROM users WHERE id = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+
+// Get user's investment statistics
+$investments_query = "SELECT COUNT(*) as total_investments, SUM(p.price) as total_invested 
+                      FROM user_products ip
+                      JOIN products p ON ip.product_id = p.id
+                      WHERE ip.user_id = ? AND ip.status = 'active'";
+$stmt = $conn->prepare($investments_query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$investments_result = $stmt->get_result();
+$investments_stats = $investments_result->fetch_assoc();
+
+// Get recent transactions
+$transactions_query = "SELECT type, amount, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 5";
+$stmt = $conn->prepare($transactions_query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$transactions_result = $stmt->get_result();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Balance</title>
+    <title>COOM-MARKETING - Account</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-bg: #0d1117;
+            --secondary-bg: #161b22;
+            --card-bg: #1a2029;
+            --accent-color: #23a559;
+            --accent-color-light: #37c070;
+            --text-color: #e6edf3;
+            --text-secondary: #7d8590;
+            --border-color: #303841;
+            --positive: #23a559;
+            --negative: #e34c26;
+            --header-bg: #0d1117;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -13,136 +67,231 @@
         }
         
         body {
-            background-color: #1a202c;
-            color: #e0e0e0;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
             min-height: 100vh;
-        }
-        
-        .header {
-            background-color: #1e2330;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .back-button {
-            color: #ffffff;
-            font-size: 24px;
-            cursor: pointer;
-            background: none;
-            border: none;
+            padding-top: 80px;
         }
         
         .container {
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 15px;
         }
         
-        .balance-card {
-            background-color: #2a3141;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 20px;
         }
         
-        .balance-info {
-            flex: 1;
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent-color-light);
         }
         
-        .account-label {
-            color: #a0aec0;
-            font-size: 14px;
-            margin-bottom: 8px;
+        .balance-card {
+            grid-column: span 2;
         }
         
         .balance-amount {
-            font-size: 20px;
+            font-size: 36px;
             font-weight: bold;
-            color: #f0b90b; /* RWF yellow color */
+            color: var(--accent-color-light);
+            margin: 10px 0;
         }
         
-        .currency {
-            color: #f0b90b;
+        .balance-label {
+            color: var(--text-secondary);
+            font-size: 16px;
         }
         
-        .balance-icon {
-            max-width: 60px;
-            margin-left: 15px;
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
         }
         
-        .money-bag {
-            width: 60px;
-            height: 60px;
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background-color: var(--secondary-bg);
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent-color-light);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .transaction-item {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+        
+        .transaction-type {
+            font-weight: 500;
+        }
+        
+        .transaction-amount {
+            font-weight: 600;
+        }
+        
+        .deposit {
+            color: var(--positive);
+        }
+        
+        .withdrawal {
+            color: var(--negative);
+        }
+        
+        .investment {
+            color: var(--accent-color-light);
+        }
+        
+        .no-transactions {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-secondary);
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .action-btn {
+            display: flex;
+            flex-direction: column;
             align-items: center;
+            padding: 20px 10px;
+            background-color: var(--secondary-bg);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-color);
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background-color: var(--accent-color-light);
+            color: white;
+        }
+        
+        .action-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .action-text {
+            font-size: 12px;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <button class="back-button" onclick="history.back()">←</button>
-    </div>
-    
     <div class="container">
-        <?php
-        include "../includes/db_connection.php";
-        
-        // Get user ID from session (you should implement proper authentication)
-        $userId = $_SESSION['user_id'] ?? 1; // Default to 1 for testing
-        
-        // Query to get balances for this user
-        $sql = "SELECT account_type, balance FROM user_balances WHERE user_id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("i", $userId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        // Display balances
-        while($row = $result->fetch_assoc()) {
-            $accountType = $row['account_type'];
-            $balance = number_format($row['balance'], 2);
-            $displayName = ($accountType == 'basic') ? 'Basic account' : 'Withdrawal account';
-            
-            echo '
-            <div class="balance-card">
-                <div class="balance-info">
-                    <div class="account-label">'.$displayName.'</div>
-                    <div class="balance-amount">'.$balance.' <span class="currency">RWF</span></div>
+        <div class="dashboard-grid">
+            <div class="card balance-card">
+                <div class="card-header">
+                    <h2 class="card-title">Account Overview</h2>
                 </div>
-                <div class="money-bag">';
+                <div class="balance-amount">RWF <?php echo number_format($user['balance'] ?? 0, 2); ?></div>
+                <div class="balance-label">Available Balance</div>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value"><?php echo $investments_stats['total_investments']; ?></div>
+                        <div class="stat-label">Active Investments</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">RWF <?php echo number_format($investments_stats['total_invested'] ?? 0, 2); ?></div>
+                        <div class="stat-label">Total Invested</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value"><?php echo $user['vip_level']; ?></div>
+                        <div class="stat-label">VIP Level</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value"><?php echo date('Y-m-d', strtotime($user['created_at'])); ?></div>
+                        <div class="stat-label">Member Since</div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="recharge.php" class="action-btn">
+                        <div class="action-icon"><i class="fas fa-plus"></i></div>
+                        <div class="action-text">Deposit</div>
+                    </a>
+                    <a href="withdraw.php" class="action-btn">
+                        <div class="action-icon"><i class="fas fa-minus"></i></div>
+                        <div class="action-text">Withdraw</div>
+                    </a>
+                </div>
+            </div>
             
-            // Different icon based on account type
-            if($accountType == 'basic') {
-                echo '<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M30 5C25 5 20 10 20 15L40 15C40 10 35 5 30 5Z" fill="#f0b90b"/>
-                    <path d="M20 15L20 20C20 30 30 35 30 45C30 55 40 55 40 45C40 35 50 30 50 20L50 15L20 15Z" fill="#f0b90b"/>
-                    <circle cx="30" cy="30" r="8" fill="#1a202c"/>
-                    <path d="M27 30L33 30M30 27L30 33" stroke="#f0b90b" stroke-width="2"/>
-                </svg>';
-            } else {
-                echo '<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M25 15C22 15 20 18 20 21L30 21C30 18 28 15 25 15Z" fill="#f0b90b"/>
-                    <path d="M20 21L20 24C20 30 25 32 25 38C25 44 30 44 30 38C30 32 35 30 35 24L35 21L20 21Z" fill="#f0b90b"/>
-                    <path d="M35 20C32 20 30 23 30 26L40 26C40 23 38 20 35 20Z" fill="#f0b90b"/>
-                    <path d="M30 26L30 29C30 35 35 37 35 43C35 49 40 49 40 43C40 37 45 35 45 29L45 26L30 26Z" fill="#f0b90b"/>
-                </svg>';
-            }
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Recent Transactions</h3>
+                </div>
+                <?php if ($transactions_result->num_rows > 0): ?>
+                    <?php while ($transaction = $transactions_result->fetch_assoc()): ?>
+                        <div class="transaction-item">
+                            <div class="transaction-type"><?php echo ucfirst($transaction['type']); ?></div>
+                            <div class="transaction-amount <?php echo $transaction['type']; ?>">RWF <?php echo number_format($transaction['amount'], 2); ?></div>
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div class="no-transactions">No recent transactions</div>
+                <?php endif; ?>
+            </div>
             
-            echo '</div>
-            </div>';
-        }
-        
-        // Close connection
-        $stmt->close();
-        $conn->close();
-        ?>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Quick Actions</h3>
+                </div>
+                <div class="action-buttons">
+                    <a href="profile.php" class="action-btn">
+                        <div class="action-icon"><i class="fas fa-user"></i></div>
+                        <div class="action-text">Profile</div>
+                    </a>
+                    <a href="products.php" class="action-btn">
+                        <div class="action-icon"><i class="fas fa-chart-pie"></i></div>
+                        <div class="action-text">Invest</div>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

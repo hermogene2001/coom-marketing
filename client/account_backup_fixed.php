@@ -35,16 +35,6 @@ $stmt = $conn->prepare($transactions_query);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $transactions_result = $stmt->get_result();
-
-// Get referral statistics
-$referral_stats_query = "SELECT 
-                            (SELECT COUNT(*) FROM users WHERE referrer_id = ?) as total_referrals,
-                            (SELECT SUM(amount) FROM transactions WHERE user_id IN (SELECT id FROM users WHERE referrer_id = ?) AND type = 'referral_bonus') as total_earnings";
-$stmt = $conn->prepare($referral_stats_query);
-$stmt->bind_param("ii", $user_id, $user_id);
-$stmt->execute();
-$referral_stats_result = $stmt->get_result();
-$referral_stats = $referral_stats_result->fetch_assoc();
 ?>
 
 <!DOCTYPE html>
@@ -52,7 +42,7 @@ $referral_stats = $referral_stats_result->fetch_assoc();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COOM-MARKETING - My Account</title>
+    <title>COOM-MARKETING - Account</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -227,44 +217,6 @@ $referral_stats = $referral_stats_result->fetch_assoc();
             font-size: 12px;
             font-weight: 500;
         }
-        
-        .account-info {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .account-pic {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background-color: var(--secondary-bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            overflow: hidden;
-            border: 2px solid var(--border-color);
-        }
-        
-        .account-info h3 {
-            font-size: 20px;
-            margin-bottom: 5px;
-        }
-        
-        .account-info p {
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-        
-        .vip-level {
-            padding: 4px 8px;
-            border-radius: 4px;
-            background-color: gold;
-            color: black;
-            font-weight: bold;
-            font-size: 12px;
-        }
     </style>
 </head>
 <body>
@@ -273,19 +225,6 @@ $referral_stats = $referral_stats_result->fetch_assoc();
             <div class="card balance-card">
                 <div class="card-header">
                     <h2 class="card-title">Account Overview</h2>
-                </div>
-                <div class="account-info">
-                    <div class="account-pic">
-                        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M20 21V19C20 16.7909 18.2091 15 16 15H8C5.79086 15 4 16.7909 4 19V21" stroke="var(--text-color)" stroke-width="2" stroke-linecap="round"/>
-                            <circle cx="12" cy="7" r="4" stroke="var(--text-color)" stroke-width="2"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h3><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></h3>
-                        <p><?php echo htmlspecialchars($user['email']); ?></p>
-                        <p>VIP Level: <span class="vip-level"><?php echo $user['vip_level']; ?></span></p>
-                    </div>
                 </div>
                 <div class="balance-amount">RWF <?php echo number_format($user['balance'], 2); ?></div>
                 <div class="balance-label">Available Balance</div>
@@ -300,12 +239,12 @@ $referral_stats = $referral_stats_result->fetch_assoc();
                         <div class="stat-label">Total Invested</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value"><?php echo $referral_stats['total_referrals']; ?></div>
-                        <div class="stat-label">Referrals</div>
+                        <div class="stat-value"><?php echo $user['vip_level']; ?></div>
+                        <div class="stat-label">VIP Level</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">RWF <?php echo number_format($referral_stats['total_earnings'] ?? 0, 2); ?></div>
-                        <div class="stat-label">Referral Earnings</div>
+                        <div class="stat-value"><?php echo date('Y-m-d', strtotime($user['created_at'])); ?></div>
+                        <div class="stat-label">Member Since</div>
                     </div>
                 </div>
                 
