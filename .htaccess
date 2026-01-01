@@ -1,0 +1,11 @@
+RewriteEngine On
+
+# Ensure PHP files are accessed with .php extension
+RewriteCond %{THE_REQUEST} /([^.]+)\.php [NC]
+RewriteRule ^ /%1.php [R=301,L]
+
+# Add .php extension to files that don't have it and exist as .php files
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^ %{REQUEST_URI}.php [L]
