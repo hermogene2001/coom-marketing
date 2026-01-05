@@ -76,6 +76,7 @@ $market_data = [
             background-color: var(--primary-bg);
             color: var(--text-color);
             min-height: 100vh;
+            padding-top: 80px;
         }
         
         .container {
@@ -89,6 +90,11 @@ $market_data = [
             background-color: var(--header-bg);
             border-bottom: 1px solid var(--border-color);
             padding: 15px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
         }
         
         .header-content {

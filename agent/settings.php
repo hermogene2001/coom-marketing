@@ -12,7 +12,7 @@ require_once('../includes/db.php');
 
 // Fetch the agent's current details
 $agent_id = $_SESSION['user_id'];
-$agent_query = "SELECT first_name, last_name, phone_number, referral_code FROM users WHERE id = '$agent_id'";
+$agent_query = "SELECT first_name, last_name, phone_number, referral_code, binance_address FROM users WHERE id = '$agent_id'";
 $agent_result = mysqli_query($conn, $agent_query);
 $agent = mysqli_fetch_assoc($agent_result);
 
@@ -32,8 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $new_phone_number = $_POST['phone_number'];
         $new_fname = $_POST['fname'];
         $new_lname = $_POST['lname'];
+        $new_binance_address = $_POST['binance_address'] ?? '';
 
-        $update_query = "UPDATE users SET phone_number = '$new_phone_number', first_name = '$new_fname', last_name = '$new_lname' WHERE id = '$agent_id'";
+        $update_query = "UPDATE users SET phone_number = '$new_phone_number', first_name = '$new_fname', last_name = '$new_lname', binance_address = '$new_binance_address' WHERE id = '$agent_id'";
         if (mysqli_query($conn, $update_query)) {
             $success_message = "Settings updated successfully.";
         } else {
@@ -208,6 +209,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label for="referral_code"><i class="fas fa-user-tag"></i> Referral Code</label>
                     <input type="text" class="form-control" id="referral_code" 
                            value="<?php echo htmlspecialchars($agent['referral_code']); ?>" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="binance_address"><i class="fab fa-btc"></i> Binance Address</label>
+                    <input type="text" class="form-control" id="binance_address" name="binance_address" 
+                           value="<?php echo htmlspecialchars($agent['binance_address']); ?>" placeholder="Enter your Binance wallet address">
+                    <small class="form-text text-muted">Enter your Binance wallet address to receive cryptocurrency deposits from clients</small>
                 </div>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save me-2"></i>Update Settings

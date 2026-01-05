@@ -22,43 +22,38 @@ $user = $result->fetch_assoc();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $amount = floatval($_POST['amount']);
     $payment_method = $_POST['payment_method'];
-    $account_number = $_POST['account_number'];
     
     // Validate amount
     if ($amount <= 0) {
         $error = "Amount must be greater than 0";
-    } elseif ($amount > $user['balance']) {
-        $error = "Insufficient balance for withdrawal";
     } else {
-        // For Binance withdrawals, the account_number will be the user's Binance address
-        if ($payment_method === 'binance') {
-            // Validate that the account number is provided for Binance
-            if (empty($account_number)) {
-                $error = "Please provide your Binance address for receiving your funds.";
-            } else {
-                // Create withdrawal request with Binance address in wallet_address field
-                $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
-                $stmt->bind_param("isss", $user_id, $amount, $payment_method, $account_number);
-            }
-        } else {
-            // For non-Binance methods, proceed as before
-            $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
-            $stmt->bind_param("isss", $user_id, $amount, $payment_method, $account_number);
-        }
+        // Create recharge request
+        $stmt = $conn->prepare("INSERT INTO recharges (user_id, amount, payment_method, status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
+        $stmt->bind_param("ids", $user_id, $amount, $payment_method);
         
         if ($stmt->execute()) {
-            $success = "Withdrawal request submitted successfully. It will be processed within 24 hours.";
+            $success = "Recharge request submitted successfully. Please complete the payment using the details below.";
             
-            // If payment method is binance, prepare for crypto withdrawal
+            // Get the recharge ID for payment details
+            $recharge_id = $conn->insert_id;
+            
+            // If payment method is binance, generate deposit address
             if ($payment_method === 'binance') {
                 // Include Binance integration
                 include_once '../includes/binance_api.php';
                 
-                // In a real implementation, the withdrawal would be processed by the cron job
-                // For now, we'll just confirm the request was submitted
+                $binance_integration = new COOMBinanceIntegration($conn);
+                $deposit_address = $binance_integration->getUserDepositAddress($user_id, 'USDT');
+                
+                if ($deposit_address) {
+                    $binance_deposit_address = $deposit_address['address'];
+                    $binance_network = $deposit_address['network'];
+                } else {
+                    $error = "Failed to generate Binance deposit address. Please contact support.";
+                }
             }
         } else {
-            $error = "Failed to submit withdrawal request: " . $conn->error;
+            $error = "Failed to submit recharge request: " . $conn->error;
         }
     }
 }
@@ -69,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COOM-MARKETING - Withdraw</title>
+    <title>COOM-MARKETING - Deposit</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -105,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 20px 15px;
         }
         
-        .withdraw-container {
+        .recharge-container {
             max-width: 800px;
             margin: 0 auto;
         }
@@ -177,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .submit-btn {
-            background-color: var(--negative);
+            background-color: var(--accent-color);
             color: white;
             border: none;
             padding: 14px 20px;
@@ -191,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .submit-btn:hover {
-            background-color: #ff6b6b;
+            background-color: var(--accent-color-light);
         }
         
         .error-message {
@@ -212,39 +207,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 8px;
         }
         
-        .withdrawal-info {
+        .payment-details {
             background-color: var(--card-bg);
             border-radius: 12px;
             padding: 25px;
-            margin-bottom: 20px;
             border: 1px solid var(--border-color);
         }
         
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
+        .payment-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
         }
         
-        .info-item:last-child {
-            border-bottom: none;
+        .payment-method {
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
         }
         
-        .info-label {
-            color: var(--text-secondary);
+        .payment-method:hover {
+            border-color: var(--accent-color-light);
         }
         
-        .info-value {
-            font-weight: bold;
+        .payment-method.active {
+            border-color: var(--accent-color-light);
+            background-color: rgba(35, 165, 89, 0.1);
         }
         
-        .withdrawal-fee {
-            color: var(--negative);
-        }
-        
-        .withdrawal-limit {
+        .payment-method i {
+            font-size: 24px;
+            margin-bottom: 10px;
             color: var(--accent-color-light);
+        }
+        
+        .payment-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--secondary-bg);
+            border-radius: 8px;
+        }
+        
+        .payment-info h4 {
+            color: var(--accent-color-light);
+            margin-bottom: 10px;
+        }
+        
+        .payment-info p {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .payment-info .highlight {
+            color: var(--accent-color-light);
+            font-weight: bold;
         }
         
         .binance-info {
@@ -259,18 +279,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #000;
             margin-bottom: 10px;
         }
+        
+        .deposit-address {
+            background-color: var(--secondary-bg);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            word-break: break-all;
+            font-family: monospace;
+        }
+        
+        .copy-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        .copy-btn:hover {
+            background-color: var(--accent-color-light);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="withdraw-container">
+        <div class="recharge-container">
             <div class="page-header">
-                <h1><i class="fas fa-money-bill-wave"></i> Withdraw Funds</h1>
-                <p>Withdraw your earnings to your preferred payment method</p>
+                <h1><i class="fas fa-money-bill-wave"></i> Deposit Funds</h1>
+                <p>Add money to your account to start investing</p>
             </div>
             
             <div class="user-balance">
-                <div class="balance-label">Available Balance</div>
+                <div class="balance-label">Current Balance</div>
                 <div class="balance-amount">RWF <?php echo number_format($user['balance'], 2); ?></div>
             </div>
             
@@ -282,32 +326,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="success-message"><?php echo htmlspecialchars($success); ?></div>
             <?php endif; ?>
             
-            <div class="withdrawal-info">
-                <h3 style="margin-bottom: 20px; color: var(--accent-color-light);">Withdrawal Information</h3>
-                <div class="info-item">
-                    <span class="info-label">Minimum Withdrawal</span>
-                    <span class="info-value withdraw-limit">RWF 5,000</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Withdrawal Fee</span>
-                    <span class="info-value withdrawal-fee">RWF 200</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Processing Time</span>
-                    <span class="info-value">24 hours</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Daily Limit</span>
-                    <span class="info-value">RWF 1,000,000</span>
-                </div>
-            </div>
-            
             <div class="form-container">
-                <h3 style="margin-bottom: 20px; color: var(--accent-color-light);">Withdrawal Details</h3>
-                <form action="withdraw.php" method="post">
+                <h3 style="margin-bottom: 20px; color: var(--accent-color-light);">Deposit Amount</h3>
+                <form action="recharge.php" method="post">
                     <div class="form-group">
                         <label for="amount">Amount (RWF)</label>
-                        <input type="number" id="amount" name="amount" min="5000" max="<?php echo $user['balance']; ?>" step="0.01" placeholder="Enter amount" required>
+                        <input type="number" id="amount" name="amount" min="1" step="0.01" placeholder="Enter amount" required>
                     </div>
                     
                     <div class="form-group">
@@ -316,29 +340,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <option value="">Select payment method</option>
                             <option value="mobile_money">Mobile Money (MTN, Airtel)</option>
                             <option value="bank_transfer">Bank Transfer</option>
+                            <option value="credit_card">Credit/Debit Card</option>
                             <option value="paypal">PayPal</option>
-                            <option value="binance">Binance (Crypto)</option>
+                            <option value="binance">Binance</option>
                         </select>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="account_number">Account Number / Wallet Address</label>
-                        <input type="text" id="account_number" name="account_number" placeholder="Enter your account number or wallet address" required>
-                    </div>
-                    
-                    <button type="submit" class="submit-btn">Submit Withdrawal Request</button>
+                    <button type="submit" class="submit-btn">Submit Deposit Request</button>
                 </form>
             </div>
             
-            <div class="withdrawal-info">
-                <div id="binanceInfo" class="binance-info" style="display: none;">
-                    <h4><i class="fab fa-btc"></i> Binance Withdrawal Instructions</h4>
-                    <p><strong>Step 1:</strong> Provide your cryptocurrency wallet address in the field above</p>
-                    <p><strong>Step 2:</strong> We will convert your RWF balance to the desired cryptocurrency at current market rates</p>
-                    <p><strong>Step 3:</strong> After approval, funds will be sent to your provided wallet address</p>
-                    <p><strong>Step 4:</strong> You will receive an email notification once the transaction is completed</p>
-                    <p><strong>Important:</strong> Ensure your wallet address is correct and supports the cryptocurrency type. We are not responsible for losses due to incorrect addresses.</p>
+            <div class="payment-details">
+                <h3 style="margin-bottom: 20px; color: var(--accent-color-light);">Payment Instructions</h3>
+                <div class="payment-info">
+                    <h4><i class="fas fa-info-circle"></i> How to Complete Your Deposit</h4>
+                    <p>1. Submit your deposit request using the form above</p>
+                    <p>2. You will receive payment details for your selected method</p>
+                    <p>3. Complete the payment using the provided details</p>
+                    <p>4. Your account will be credited after payment confirmation</p>
+                    <p><strong>Note:</strong> Processing time may vary depending on the payment method selected.</p>
                 </div>
+                
+                <?php if (isset($binance_deposit_address) && $binance_deposit_address): ?>
+                <div id="binanceInfo" class="binance-info">
+                    <h4><i class="fab fa-btc"></i> Binance Deposit Details</h4>
+                    <p><strong>Your Deposit Address:</strong></p>
+                    <div class="deposit-address">
+                        <?php echo htmlspecialchars($binance_deposit_address); ?>
+                        <?php if (isset($binance_network)): ?>
+                            <br><small>Network: <?php echo htmlspecialchars($binance_network); ?></small>
+                        <?php endif; ?>
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('<?php echo $binance_deposit_address; ?>')">Copy Address</button>
+                    <p><strong>Amount to Send:</strong> <?php echo number_format($amount, 2); ?> USDT</p>
+                    <p><strong>Important:</strong> Only send USDT to this address. Send exact amount as requested.</p>
+                    <p>After sending, please allow up to 30 minutes for processing. Your account will be credited automatically.</p>
+                </div>
+                <?php else: ?>
+                <div id="binanceInfo" class="binance-info" style="display: none;">
+                    <h4><i class="fab fa-btc"></i> Binance Payment Instructions</h4>
+                    <p><strong>Step 1:</strong> Open your Binance app or website and log in to your account</p>
+                    <p><strong>Step 2:</strong> Navigate to Wallet > Spot Wallet</p>
+                    <p><strong>Step 3:</strong> Select the cryptocurrency you want to transfer (USDT, BTC, ETH, etc.)</p>
+                    <p><strong>Step 4:</strong> Enter the amount you wish to deposit</p>
+                    <p><strong>Step 5:</strong> Send to our secure wallet address (provided after request submission)</p>
+                    <p><strong>Step 6:</strong> Note the transaction ID and submit it for verification</p>
+                    <p><strong>Important:</strong> Only send supported cryptocurrencies. We will convert to RWF at current market rates.</p>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -353,6 +402,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 binanceInfo.style.display = 'none';
             }
         });
+        
+        // Function to copy address to clipboard
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            // Show feedback
+            const copyBtn = document.querySelector('.copy-btn');
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+            }, 2000);
+        }
     </script>
 </body>
 </html>

@@ -79,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-color: var(--primary-bg);
             color: var(--text-color);
             min-height: 100vh;
+            padding-top: 80px;
         }
         
         .container {

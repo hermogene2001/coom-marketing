@@ -24,10 +24,17 @@ function applyReferralBonus($clientId, $rechargeAmount, $conn) {
     $sql = "SELECT invitation_code FROM users WHERE id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $clientId);
-    $stmt->execute();
-    $stmt->bind_result($level1ReferrerId);
-    $stmt->fetch();
-    $stmt->close();
+    $result = $stmt->execute();
+    
+    if ($result) {
+        $referrerResult = $stmt->get_result();
+        $row = $referrerResult->fetch_assoc();
+        $level1ReferrerId = $row ? $row['invitation_code'] : null;
+        $stmt->close();
+    } else {
+        $stmt->close();
+        return;
+    }
 
     if ($level1ReferrerId) {
         // Apply Level 1 bonus (12%)
@@ -46,13 +53,20 @@ function applyReferralBonus($clientId, $rechargeAmount, $conn) {
         $sql = "SELECT invitation_code FROM users WHERE id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $level1ReferrerId);
-        $stmt->execute();
-        $stmt->bind_result($level2ReferrerId);
-        $stmt->fetch();
-        $stmt->close();
+        $result2 = $stmt->execute();
+        
+        if ($result2) {
+            $referrerResult2 = $stmt->get_result();
+            $row2 = $referrerResult2->fetch_assoc();
+            $level2ReferrerId = $row2 ? $row2['invitation_code'] : null;
+            $stmt->close();
+        } else {
+            $stmt->close();
+            return;
+        }
 
         if ($level2ReferrerId) {
-            // Apply Level 2 bonus (1%)
+            // Apply Level 2 bonus (8%)
             $level2Bonus = $rechargeAmount * 0.08;
 
             // Update referral bonus
@@ -74,12 +88,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $action = $_POST['action'];
 
         if ($action === 'approve') {
-            // Fetch recharge details
-            $query = "SELECT client_id, amount FROM recharges WHERE id = ? AND agent_id = ? AND status = 'pending'";
+            // Fetch recharge details using the assignment table
+            $query = "SELECT r.client_id, r.amount, r.status FROM recharges r 
+                     JOIN recharge_agent_assignments a ON r.id = a.recharge_id 
+                     WHERE r.id = ? AND a.agent_id = ? AND (r.status = 'pending' OR r.status = 'pending_agent_assignment')";
             $stmt = $conn->prepare($query);
             $stmt->bind_param("ii", $recharge_id, $_SESSION['user_id']);
             $stmt->execute();
-            $stmt->bind_result($clientId, $rechargeAmount);
+            $stmt->bind_result($clientId, $rechargeAmount, $currentStatus);
             $stmt->fetch();
             $stmt->close();
 
@@ -88,9 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $update_query = "UPDATE recharges r 
                                  JOIN users u ON r.client_id = u.id 
                                  SET r.status = 'confirmed', u.balance = u.balance + r.amount, r.recharge_time = NOW() 
-                                 WHERE r.id = ? AND r.agent_id = ?";
+                                 WHERE r.id = ?";
                 $stmt = $conn->prepare($update_query);
-                $stmt->bind_param("ii", $recharge_id, $_SESSION['user_id']);
+                $stmt->bind_param("i", $recharge_id);
                 $stmt->execute();
                 $stmt->close();
 
@@ -111,8 +127,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             }
         } elseif ($action === 'reject') {
-            // Reject recharge
-            $reject_query = "UPDATE recharges SET status = 'rejected' WHERE id = ? AND agent_id = ?";
+            // Reject recharge - update using assignment table
+            $reject_query = "UPDATE recharges r 
+                             JOIN recharge_agent_assignments a ON r.id = a.recharge_id
+                             SET r.status = 'rejected' WHERE r.id = ? AND a.agent_id = ?";
             $stmt = $conn->prepare($reject_query);
             $stmt->bind_param("ii", $recharge_id, $_SESSION['user_id']);
             $stmt->execute();
@@ -226,21 +244,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Fetch Pending Recharges
-$pending_recharges_query = "SELECT r.id, r.amount, r.recharge_time, u.phone_number 
-                            FROM recharges r 
-                            JOIN users u ON r.client_id = u.id 
-                            WHERE r.agent_id = ? AND r.status = 'pending'";
+$pending_recharges_query = "SELECT r.id, r.amount, r.recharge_time, u.phone_number, r.payment_method 
+                        FROM recharges r 
+                        JOIN users u ON r.client_id = u.id 
+                        JOIN recharge_agent_assignments a ON r.id = a.recharge_id
+                        WHERE a.agent_id = ? AND (r.status = 'pending' OR r.status = 'pending_agent_assignment')";
 $stmt = $conn->prepare($pending_recharges_query);
 $stmt->bind_param("i", $_SESSION['user_id']);
 $stmt->execute();
-$stmt->bind_result($recharge_id, $amount, $request_time, $client_phone_number);
+$stmt->bind_result($recharge_id, $amount, $request_time, $client_phone_number, $payment_method);
 $pending_recharges = [];
 while ($stmt->fetch()) {
     $pending_recharges[] = [
         'id' => $recharge_id,
         'amount' => $amount,
         'request_time' => $request_time,
-        'client_phone_number' => $client_phone_number
+        'client_phone_number' => $client_phone_number,
+        'payment_method' => $payment_method
     ];
 }
 $stmt->close();

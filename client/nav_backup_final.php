@@ -1,5 +1,5 @@
 <?php
-// Navigation Bar for COOM Trading - Positioned under content
+// Modern Navigation Bar for COOM Trading
 // This is included in the main pages to provide consistent navigation
 ?>
 
@@ -16,7 +16,6 @@
         z-index: 1000;
         border-bottom: 1px solid var(--border-color);
         height: 50px;
-        margin-top: 20px;
     }
     
     .nav-item {
@@ -69,7 +68,7 @@
     
     /* Top right icons */
     .top-right-icons {
-        position: absolute;
+        position: fixed;
         top: 20px;
         right: 20px;
         display: flex;
@@ -151,7 +150,6 @@
 <div class="top-right-icons">
     <div class="top-icon" id="supportButton">🎧</div>
     <div class="top-icon" id="messageButton">✉️</div>
-    <a href="../auth/logout.php" class="top-icon" title="Logout">🚪</a>
 </div>
 
 <div class="social-popup" id="socialPopup">

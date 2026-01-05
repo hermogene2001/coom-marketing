@@ -27,17 +27,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($amount <= 0) {
         $error = "Amount must be greater than 0";
     } else {
-        // Create recharge request
-        $stmt = $conn->prepare("INSERT INTO recharges (user_id, amount, payment_method, status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
-        $stmt->bind_param("ids", $user_id, $amount, $payment_method);
-        
-        if ($stmt->execute()) {
-            $success = "Recharge request submitted successfully. Please complete the payment using the details below.";
+        if ($payment_method === 'binance') {
+            // For Binance, find an agent with a Binance address
+            $agent_query = "SELECT id, binance_address FROM users WHERE role = 'agent' AND binance_address IS NOT NULL AND binance_address != '' ORDER BY RAND() LIMIT 1";
+            $agent_result = $conn->query($agent_query);
             
-            // Get the recharge ID for payment details
-            $recharge_id = $conn->insert_id;
+            if ($agent_result->num_rows > 0) {
+                $agent = $agent_result->fetch_assoc();
+                $agent_id = $agent['id'];
+                $assigned_binance_address = $agent['binance_address'];
+                
+                // Create recharge request with source phone and status 'pending_agent_assignment'
+                $stmt = $conn->prepare("INSERT INTO recharges (user_id, amount, payment_method, source_phone, status, created_at) VALUES (?, ?, ?, ?, 'pending_agent_assignment', NOW())");
+                $stmt->bind_param("idss", $user_id, $amount, $payment_method, $user['phone_number']);
+                
+                if ($stmt->execute()) {
+                    $recharge_id = $conn->insert_id;
+                    
+                    // Assign the recharge to the selected agent
+                    $assign_stmt = $conn->prepare("INSERT INTO recharge_agent_assignments (recharge_id, agent_id) VALUES (?, ?)");
+                    $assign_stmt->bind_param("ii", $recharge_id, $agent_id);
+                    $assign_stmt->execute();
+                    $assign_stmt->close();
+                    
+                    $success = "Recharge request submitted successfully. Please send the exact amount to the Binance address below.";
+                    $binance_deposit_address = $assigned_binance_address;
+                } else {
+                    $error = "Failed to submit recharge request: " . $conn->error;
+                }
+            } else {
+                $error = "No agents with Binance addresses available at this time. Please try again later or select another payment method.";
+            }
         } else {
-            $error = "Failed to submit recharge request: " . $conn->error;
+            // For non-Binance methods, proceed as before
+            $stmt = $conn->prepare("INSERT INTO recharges (user_id, amount, payment_method, source_phone, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
+            $stmt->bind_param("idss", $user_id, $amount, $payment_method, $user['phone_number']);
+            
+            if ($stmt->execute()) {
+                $success = "Recharge request submitted successfully. Please complete the payment using the details below.";
+                $recharge_id = $conn->insert_id;
+            } else {
+                $error = "Failed to submit recharge request: " . $conn->error;
+            }
         }
     }
 }
@@ -76,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-color: var(--primary-bg);
             color: var(--text-color);
             min-height: 100vh;
-            padding-top: 80px;
         }
         
         .container {
@@ -251,6 +281,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: var(--accent-color-light);
             font-weight: bold;
         }
+        
+        .binance-info {
+            background-color: #f0b90b;
+            color: #000;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .binance-info h4 {
+            color: #000;
+            margin-bottom: 10px;
+        }
+        
+        .deposit-address {
+            background-color: var(--secondary-bg);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            word-break: break-all;
+            font-family: monospace;
+        }
+        
+        .copy-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        .copy-btn:hover {
+            background-color: var(--accent-color-light);
+        }
     </style>
 </head>
 <body>
@@ -290,6 +357,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <option value="bank_transfer">Bank Transfer</option>
                             <option value="credit_card">Credit/Debit Card</option>
                             <option value="paypal">PayPal</option>
+                            <option value="binance">Binance</option>
                         </select>
                     </div>
                     
@@ -307,8 +375,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <p>4. Your account will be credited after payment confirmation</p>
                     <p><strong>Note:</strong> Processing time may vary depending on the payment method selected.</p>
                 </div>
+                
+                <?php if (isset($binance_deposit_address) && $binance_deposit_address): ?>
+                <div id="binanceInfo" class="binance-info">
+                    <h4><i class="fab fa-btc"></i> Binance Deposit Details</h4>
+                    <p><strong>Send to this address:</strong></p>
+                    <div class="deposit-address">
+                        <?php echo htmlspecialchars($binance_deposit_address); ?>
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('<?php echo $binance_deposit_address; ?>')">Copy Address</button>
+                    <p><strong>Amount to Send:</strong> <?php echo number_format($amount, 2); ?> RWF (or equivalent in USDT)</p>
+                    <p><strong>Important:</strong> Send the exact amount to the address above. After sending, your recharge will be pending agent approval.</p>
+                    <p>Do not send from an exchange wallet that requires KYC verification as this may prevent your deposit from being credited.</p>
+                </div>
+                <?php else: ?>
+                <div id="binanceInfo" class="binance-info" style="display: none;">
+                    <h4><i class="fab fa-btc"></i> Binance Payment Instructions</h4>
+                    <p><strong>Step 1:</strong> Select Binance as your payment method</p>
+                    <p><strong>Step 2:</strong> Submit your recharge request</p>
+                    <p><strong>Step 3:</strong> You will receive a Binance address assigned to one of our agents</p>
+                    <p><strong>Step 4:</strong> Send the exact amount to that address</p>
+                    <p><strong>Step 5:</strong> Wait for agent to approve your recharge after receiving the funds</p>
+                    <p><strong>Important:</strong> Only send supported cryptocurrencies. We will convert to RWF at current market rates.</p>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
+
+    <script>
+        // Show/hide Binance instructions based on selection
+        document.getElementById('payment_method').addEventListener('change', function() {
+            const binanceInfo = document.getElementById('binanceInfo');
+            if (this.value === 'binance') {
+                binanceInfo.style.display = 'block';
+            } else {
+                binanceInfo.style.display = 'none';
+            }
+        });
+        
+        // Function to copy address to clipboard
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            // Show feedback
+            const copyBtn = document.querySelector('.copy-btn');
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+            }, 2000);
+        }
+    </script>
 </body>
 </html>

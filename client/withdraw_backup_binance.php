@@ -30,33 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($amount > $user['balance']) {
         $error = "Insufficient balance for withdrawal";
     } else {
-        // For Binance withdrawals, the account_number will be the user's Binance address
-        if ($payment_method === 'binance') {
-            // Validate that the account number is provided for Binance
-            if (empty($account_number)) {
-                $error = "Please provide your Binance address for receiving your funds.";
-            } else {
-                // Create withdrawal request with Binance address in wallet_address field
-                $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
-                $stmt->bind_param("isss", $user_id, $amount, $payment_method, $account_number);
-            }
-        } else {
-            // For non-Binance methods, proceed as before
-            $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
-            $stmt->bind_param("isss", $user_id, $amount, $payment_method, $account_number);
-        }
+        // Create withdrawal request
+        $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, account_number, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
+        $stmt->bind_param("issss", $user_id, $amount, $payment_method, $account_number);
         
         if ($stmt->execute()) {
             $success = "Withdrawal request submitted successfully. It will be processed within 24 hours.";
-            
-            // If payment method is binance, prepare for crypto withdrawal
-            if ($payment_method === 'binance') {
-                // Include Binance integration
-                include_once '../includes/binance_api.php';
-                
-                // In a real implementation, the withdrawal would be processed by the cron job
-                // For now, we'll just confirm the request was submitted
-            }
         } else {
             $error = "Failed to submit withdrawal request: " . $conn->error;
         }
@@ -97,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-color: var(--primary-bg);
             color: var(--text-color);
             min-height: 100vh;
+            padding-top: 80px;
         }
         
         .container {
@@ -246,19 +226,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .withdrawal-limit {
             color: var(--accent-color-light);
         }
-        
-        .binance-info {
-            background-color: #f0b90b;
-            color: #000;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
-        
-        .binance-info h4 {
-            color: #000;
-            margin-bottom: 10px;
-        }
     </style>
 </head>
 <body>
@@ -317,42 +284,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <option value="mobile_money">Mobile Money (MTN, Airtel)</option>
                             <option value="bank_transfer">Bank Transfer</option>
                             <option value="paypal">PayPal</option>
-                            <option value="binance">Binance (Crypto)</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="account_number">Account Number / Wallet Address</label>
-                        <input type="text" id="account_number" name="account_number" placeholder="Enter your account number or wallet address" required>
+                        <label for="account_number">Account Number</label>
+                        <input type="text" id="account_number" name="account_number" placeholder="Enter your account number" required>
                     </div>
                     
                     <button type="submit" class="submit-btn">Submit Withdrawal Request</button>
                 </form>
             </div>
-            
-            <div class="withdrawal-info">
-                <div id="binanceInfo" class="binance-info" style="display: none;">
-                    <h4><i class="fab fa-btc"></i> Binance Withdrawal Instructions</h4>
-                    <p><strong>Step 1:</strong> Provide your cryptocurrency wallet address in the field above</p>
-                    <p><strong>Step 2:</strong> We will convert your RWF balance to the desired cryptocurrency at current market rates</p>
-                    <p><strong>Step 3:</strong> After approval, funds will be sent to your provided wallet address</p>
-                    <p><strong>Step 4:</strong> You will receive an email notification once the transaction is completed</p>
-                    <p><strong>Important:</strong> Ensure your wallet address is correct and supports the cryptocurrency type. We are not responsible for losses due to incorrect addresses.</p>
-                </div>
-            </div>
         </div>
     </div>
-
-    <script>
-        // Show/hide Binance instructions based on selection
-        document.getElementById('payment_method').addEventListener('change', function() {
-            const binanceInfo = document.getElementById('binanceInfo');
-            if (this.value === 'binance') {
-                binanceInfo.style.display = 'block';
-            } else {
-                binanceInfo.style.display = 'none';
-            }
-        });
-    </script>
 </body>
 </html>

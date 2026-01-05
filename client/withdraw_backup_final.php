@@ -30,33 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($amount > $user['balance']) {
         $error = "Insufficient balance for withdrawal";
     } else {
-        // For Binance withdrawals, the account_number will be the user's Binance address
-        if ($payment_method === 'binance') {
-            // Validate that the account number is provided for Binance
-            if (empty($account_number)) {
-                $error = "Please provide your Binance address for receiving your funds.";
-            } else {
-                // Create withdrawal request with Binance address in wallet_address field
-                $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
-                $stmt->bind_param("isss", $user_id, $amount, $payment_method, $account_number);
-            }
-        } else {
-            // For non-Binance methods, proceed as before
-            $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
-            $stmt->bind_param("isss", $user_id, $amount, $payment_method, $account_number);
-        }
+        // Create withdrawal request
+        $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, account_number, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
+        $stmt->bind_param("issss", $user_id, $amount, $payment_method, $account_number);
         
         if ($stmt->execute()) {
             $success = "Withdrawal request submitted successfully. It will be processed within 24 hours.";
-            
-            // If payment method is binance, prepare for crypto withdrawal
-            if ($payment_method === 'binance') {
-                // Include Binance integration
-                include_once '../includes/binance_api.php';
-                
-                // In a real implementation, the withdrawal would be processed by the cron job
-                // For now, we'll just confirm the request was submitted
-            }
         } else {
             $error = "Failed to submit withdrawal request: " . $conn->error;
         }
