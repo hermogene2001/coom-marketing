@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Validate inputs
     if ($amount < 2000) {
-        $error = 'Minimum recharge amount is 2000 RWF';
+        $error = 'Minimum recharge amount is 2000 USD';
     } else {
         // Additional validation for mobile money methods
         $mobile_money_methods = [4, 5]; // Mobile money method IDs
@@ -142,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Build success message
                 $success = '<div class="payment-instructions">';
                 $success .= '<h3>Payment Instructions</h3>';
-                $success .= '<p>Please send <strong>' . number_format($total_amount, 2) . ' RWF</strong> (Amount + Fee)</p>';
+                $success .= '<p>Please send <strong>' . number_format($total_amount, 2) . ' USD</strong> (Amount + Fee)</p>';
                 
                 if ($agent_id && $selected_agent) {
                     $success .= '<div class="agent-info">';
@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($agent_id) {
                     $notify_query = "INSERT INTO notifications (user_id, message, type, related_id) 
                                     VALUES (?, ?, 'recharge', ?)";
-                    $message = "New recharge request #$transaction_id for " . number_format($amount, 2) . " RWF";
+                    $message = "New recharge request #$transaction_id for " . number_format($amount, 2) . " USD";
                     $stmt = $conn->prepare($notify_query);
                     $stmt->bind_param("isi", $agent_id, $message, $transaction_id);
                     $stmt->execute();
@@ -435,13 +435,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <div class="balance-info">
             <div class="balance-text">Available Balance</div>
-            <div class="balance-amount"><?php echo number_format($user['balance'], 2); ?> RWF</div>
+            <div class="balance-amount"><?php echo number_format($user['balance'], 2); ?> USD</div>
         </div>
         
         <div class="recharge-form">
             <form action="recharge.php" method="post">
                 <div class="form-group">
-                    <label for="amount">Recharge Amount (RWF)</label>
+                    <label for="amount">Recharge Amount (USD)</label>
                     <input type="number" id="amount" name="amount" min="10" step="0.01" required>
                     
                     <div class="quick-amounts">
@@ -466,7 +466,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     
                     <div class="method-info">
-                        Minimum: 10 RWF | Maximum: 5,000,000 RWF
+                        Minimum: 10 USD | Maximum: 5,000,000 USD
                     </div>
                 </div>
                 

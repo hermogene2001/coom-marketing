@@ -129,7 +129,7 @@ $pending_recharges_result = mysqli_query($conn, $pending_recharges_query);
                             <tr>
                                 <td><?= $recharge['id']; ?></td>
                                 <td><?= $recharge['phone_number']; ?></td>
-                                <td class="amount-cell">+<?= number_format($recharge['amount'], 2); ?> RWF</td>
+                                <td class="amount-cell">+<?= number_format($recharge['amount'], 2); ?> USD</td>
                                 <td><?= date('M j, Y H:i', strtotime($recharge['recharge_time'])); ?></td>
                                 <td><span class="badge badge-warning status-badge">Pending</span></td>
                             </tr>

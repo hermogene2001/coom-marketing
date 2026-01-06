@@ -102,7 +102,7 @@ function getRechargeContent($conn) {
         <p>Current Balance: $'.number_format($user['balance'], 2).'</p>
         <form action="process_recharge.php" method="post">
             <div class="form-group">
-                <label for="amount">Amount (RWF)</label>
+                <label for="amount">Amount (USD)</label>
                 <input type="number" id="amount" name="amount" min="10" step="0.01" required>
             </div>
             <div class="form-group">

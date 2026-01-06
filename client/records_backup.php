@@ -229,7 +229,7 @@ $withdrawal_result = $withdrawal_stmt->get_result();
                             </div>
                         </div>
                         <div class="transaction-amount amount-positive">
-                            +<?php echo number_format($transaction['amount'], 2); ?> RWF
+                            +<?php echo number_format($transaction['amount'], 2); ?> USD
                         </div>
                     </div>
                     <div class="transaction-date">
@@ -255,7 +255,7 @@ $withdrawal_result = $withdrawal_stmt->get_result();
                             </div>
                         </div>
                         <div class="transaction-amount amount-negative">
-                            -<?php echo number_format($transaction['amount'], 2); ?> RWF
+                            -<?php echo number_format($transaction['amount'], 2); ?> USD
                         </div>
                     </div>
                     <div class="transaction-date">

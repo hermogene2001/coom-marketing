@@ -190,7 +190,7 @@ $investments_result = $stmt->get_result();
                             <div class="investment-details">
                                 <div class="detail-item">
                                     <span class="detail-label">Daily Earning</span>
-                                    <span class="detail-value">RWF <?php echo number_format($investment['daily_earning'], 2); ?></span>
+                                    <span class="detail-value">$ <?php echo number_format($investment['daily_earning'], 2); ?></span>
                                 </div>
                                 <div class="detail-item">
                                     <span class="detail-label">Profit Rate</span>
@@ -206,7 +206,7 @@ $investments_result = $stmt->get_result();
                             <div class="investment-status status-<?php echo $investment['status']; ?>">
                                 <?php echo ucfirst($investment['status']); ?>
                             </div>
-                            <div class="investment-amount">RWF <?php echo number_format($investment['daily_earning'] * $investment['cycle'], 2); ?></div>
+                            <div class="investment-amount">$ <?php echo number_format($investment['daily_earning'] * $investment['cycle'], 2); ?></div>
                         </div>
                     </div>
                 <?php endwhile; ?>

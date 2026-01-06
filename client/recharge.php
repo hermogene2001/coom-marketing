@@ -330,7 +330,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <div class="user-balance">
                 <div class="balance-label">Current Balance</div>
-                <div class="balance-amount">RWF <?php echo number_format($user['balance'], 2); ?></div>
+                <div class="balance-amount">$ <?php echo number_format($user['balance'], 2); ?></div>
             </div>
             
             <?php if (isset($error)): ?>
@@ -345,7 +345,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h3 style="margin-bottom: 20px; color: var(--accent-color-light);">Deposit Amount</h3>
                 <form action="recharge.php" method="post">
                     <div class="form-group">
-                        <label for="amount">Amount (RWF)</label>
+                        <label for="amount">Amount ($)</label>
                         <input type="number" id="amount" name="amount" min="1" step="0.01" placeholder="Enter amount" required>
                     </div>
                     
@@ -384,7 +384,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php echo htmlspecialchars($binance_deposit_address); ?>
                     </div>
                     <button class="copy-btn" onclick="copyToClipboard('<?php echo $binance_deposit_address; ?>')">Copy Address</button>
-                    <p><strong>Amount to Send:</strong> <?php echo number_format($amount, 2); ?> RWF (or equivalent in USDT)</p>
+                    <p><strong>Amount to Send:</strong> <?php echo number_format($amount, 2); ?> USD (or equivalent in USDT)</p>
                     <p><strong>Important:</strong> Send the exact amount to the address above. After sending, your recharge will be pending agent approval.</p>
                     <p>Do not send from an exchange wallet that requires KYC verification as this may prevent your deposit from being credited.</p>
                 </div>
@@ -396,7 +396,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <p><strong>Step 3:</strong> You will receive a Binance address assigned to one of our agents</p>
                     <p><strong>Step 4:</strong> Send the exact amount to that address</p>
                     <p><strong>Step 5:</strong> Wait for agent to approve your recharge after receiving the funds</p>
-                    <p><strong>Important:</strong> Only send supported cryptocurrencies. We will convert to RWF at current market rates.</p>
+                    <p><strong>Important:</strong> Only send supported cryptocurrencies. We will convert to USD at current market rates.</p>
                 </div>
                 <?php endif; ?>
             </div>

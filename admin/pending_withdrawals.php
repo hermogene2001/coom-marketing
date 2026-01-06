@@ -139,7 +139,7 @@ $pending_withdrawals_result = mysqli_query($conn, $pending_withdrawals_query);
                             <tr>
                                 <td><?= $withdrawal['id']; ?></td>
                                 <td><?= $withdrawal['phone_number']; ?></td>
-                                <td class="amount-cell">-<?= number_format($withdrawal['amount'], 2); ?> RWF</td>
+                                <td class="amount-cell">-<?= number_format($withdrawal['amount'], 2); ?> USD</td>
                                 <td><?= date('M j, Y H:i', strtotime($withdrawal['date'])); ?></td>
                                 <td><span class="badge badge-warning status-badge">Pending</span></td>
                                 <td class="action-btns">

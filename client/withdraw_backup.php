@@ -220,13 +220,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <div class="balance-info">
             <div class="balance-text">Available Balance</div>
-            <div class="balance-amount"><?php echo number_format($user['balance'], 2); ?> RWF</div>
+            <div class="balance-amount"><?php echo number_format($user['balance'], 2); ?> USD</div>
         </div>
         
         <div class="withdraw-form">
             <form action="withdraw.php" method="post">
                 <div class="form-group">
-                    <label for="amount">Withdrawal Amount (RWF)</label>
+                    <label for="amount">Withdrawal Amount (USD)</label>
                     <input type="number" id="amount" name="amount" min="10" step="0.01" required>
                 </div>
                 

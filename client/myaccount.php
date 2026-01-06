@@ -287,7 +287,7 @@ $referral_stats = $referral_stats_result->fetch_assoc();
                         <p>VIP Level: <span class="vip-level"><?php echo $user['vip_level']; ?></span></p>
                     </div>
                 </div>
-                <div class="balance-amount">RWF <?php echo number_format($user['balance'], 2); ?></div>
+                <div class="balance-amount">$ <?php echo number_format($user['balance'], 2); ?></div>
                 <div class="balance-label">Available Balance</div>
                 
                 <div class="stats-grid">
@@ -296,7 +296,7 @@ $referral_stats = $referral_stats_result->fetch_assoc();
                         <div class="stat-label">Active Investments</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">RWF <?php echo number_format($investments_stats['total_invested'], 2); ?></div>
+                        <div class="stat-value">$ <?php echo number_format($investments_stats['total_invested'], 2); ?></div>
                         <div class="stat-label">Total Invested</div>
                     </div>
                     <div class="stat-item">
@@ -304,7 +304,7 @@ $referral_stats = $referral_stats_result->fetch_assoc();
                         <div class="stat-label">Referrals</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">RWF <?php echo number_format($referral_stats['total_earnings'] ?? 0, 2); ?></div>
+                        <div class="stat-value">$ <?php echo number_format($referral_stats['total_earnings'] ?? 0, 2); ?></div>
                         <div class="stat-label">Referral Earnings</div>
                     </div>
                 </div>
@@ -329,7 +329,7 @@ $referral_stats = $referral_stats_result->fetch_assoc();
                     <?php while ($transaction = $transactions_result->fetch_assoc()): ?>
                         <div class="transaction-item">
                             <div class="transaction-type"><?php echo ucfirst($transaction['type']); ?></div>
-                            <div class="transaction-amount <?php echo $transaction['type']; ?>">RWF <?php echo number_format($transaction['amount'], 2); ?></div>
+                            <div class="transaction-amount <?php echo $transaction['type']; ?>">$ <?php echo number_format($transaction['amount'], 2); ?></div>
                         </div>
                     <?php endwhile; ?>
                 <?php else: ?>

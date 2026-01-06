@@ -84,7 +84,7 @@
                     
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label for="price" class="form-label">Price (RWF)</label>
+                            <label for="price" class="form-label">Price (USD)</label>
                             <input type="number" class="form-control bg-secondary text-light" id="price" name="price" min="1" step="0.01" required>
                         </div>
                         <div class="col-md-4 mb-3">
@@ -92,7 +92,7 @@
                             <input type="number" class="form-control bg-secondary text-light" id="profitRate" name="profit_rate" min="1" max="100" required>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label for="dailyEarning" class="form-label">Daily Earning (RWF)</label>
+                            <label for="dailyEarning" class="form-label">Daily Earning (USD)</label>
                             <input type="number" class="form-control bg-secondary text-light" id="dailyEarning" name="daily_earning" readonly>
                         </div>
                     </div>
@@ -103,7 +103,7 @@
                             <input type="number" class="form-control bg-secondary text-light" id="cycle" name="cycle" min="1" required>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label for="minWithdraw" class="form-label">Min Withdrawal (RWF)</label>
+                            <label for="minWithdraw" class="form-label">Min Withdrawal (USD)</label>
                             <input type="number" class="form-control bg-secondary text-light" id="minWithdraw" name="min_withdraw" min="3000" step="0.01" value="3000.00">
                         </div>
                         <div class="col-md-4 mb-3">

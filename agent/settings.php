@@ -232,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                value="<?php echo htmlspecialchars($client['phone_number'] ?? ''); ?>" disabled>
                     </div>
                     <div class="form-group">
-                        <label for="client_balance"><i class="fas fa-money-bill-wave"></i> Client Balance (RWF)</label>
+                        <label for="client_balance"><i class="fas fa-money-bill-wave"></i> Client Balance (USD)</label>
                         <input type="number" step="0.01" class="form-control" id="client_balance" name="client_balance" 
                                value="<?php echo htmlspecialchars($client['balance'] ?? ''); ?>" required>
                     </div>

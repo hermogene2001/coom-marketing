@@ -211,7 +211,7 @@ $products_result = $conn->query($products_query);
         
         <div class="user-balance">
             <div class="balance-label">Your Balance</div>
-            <div class="balance-amount">RWF <?php echo number_format($user['balance'], 2); ?></div>
+            <div class="balance-amount">$ <?php echo number_format($user['balance'], 2); ?></div>
         </div>
         
         <div class="products-slider">
@@ -220,11 +220,11 @@ $products_result = $conn->query($products_query);
                     <?php while ($product = $products_result->fetch_assoc()): ?>
                         <div class="product-card">
                             <div class="product-name"><?php echo htmlspecialchars($product['name']); ?></div>
-                            <div class="product-price">RWF <?php echo number_format($product['price'], 2); ?></div>
+                            <div class="product-price">$ <?php echo number_format($product['price'], 2); ?></div>
                             <div class="product-features">
                                 <div class="feature-item">
                                     <span class="feature-label">Daily Earning:</span>
-                                    <span class="feature-value">RWF <?php echo number_format($product['daily_earning'], 2); ?></span>
+                                    <span class="feature-value">$ <?php echo number_format($product['daily_earning'], 2); ?></span>
                                 </div>
                                 <div class="feature-item">
                                     <span class="feature-label">Profit Rate:</span>
@@ -236,7 +236,7 @@ $products_result = $conn->query($products_query);
                                 </div>
                                 <div class="feature-item">
                                     <span class="feature-label">Total Profit:</span>
-                                    <span class="feature-value">RWF <?php echo number_format($product['daily_earning'] * $product['cycle'], 2); ?></span>
+                                    <span class="feature-value">$ <?php echo number_format($product['daily_earning'] * $product['cycle'], 2); ?></span>
                                 </div>
                             </div>
                             <form action="products.php" method="post" style="display: inline;">

@@ -263,7 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <div class="user-balance">
                 <div class="balance-label">Current Balance</div>
-                <div class="balance-amount">RWF <?php echo number_format($user['balance'], 2); ?></div>
+                <div class="balance-amount">$ <?php echo number_format($user['balance'], 2); ?></div>
             </div>
             
             <?php if (isset($error)): ?>
@@ -278,7 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h3 style="margin-bottom: 20px; color: var(--accent-color-light);">Deposit Amount</h3>
                 <form action="recharge.php" method="post">
                     <div class="form-group">
-                        <label for="amount">Amount (RWF)</label>
+                        <label for="amount">Amount ($)</label>
                         <input type="number" id="amount" name="amount" min="1" step="0.01" placeholder="Enter amount" required>
                     </div>
                     

@@ -64,7 +64,7 @@
         .balance-amount {
             font-size: 20px;
             font-weight: bold;
-            color: #f0b90b; /* RWF yellow color */
+            color: #f0b90b; /* USD currency color */
         }
         
         .currency {
@@ -114,7 +114,7 @@
             <div class="balance-card">
                 <div class="balance-info">
                     <div class="account-label">'.$displayName.'</div>
-                    <div class="balance-amount">'.$balance.' <span class="currency">RWF</span></div>
+                    <div class="balance-amount">'.$balance.' <span class="currency">$</span></div>
                 </div>
                 <div class="money-bag">';
             

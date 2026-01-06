@@ -261,7 +261,7 @@ foreach ($products as &$product) {
             color: var(--accent-color-light);
         }
         
-        .RWF-value {
+        .usd-value {
             color: var(--text-secondary);
             font-size: 12px;
             margin-left: 3px;
@@ -338,7 +338,7 @@ foreach ($products as &$product) {
         
         <!-- Display user's current balance for reference -->
         <div class="message">
-            Your current balance: <?php echo number_format($user_data['balance'], 2); ?> RWF
+            Your current balance: <?php echo number_format($user_data['balance'], 2); ?> USD
         </div>
         
         <?php foreach ($products as $product_id => $product): ?>
@@ -354,7 +354,7 @@ foreach ($products as &$product) {
                     <div class="product-stats">
                         <div class="product-stat">
                             <div class="product-stat-label">Daily earning</div>
-                            <div class="product-stat-value"><?php echo number_format($product['daily_earning'], 2); ?><span class="RWF-value">RWF</span></div>
+                            <div class="product-stat-value"><?php echo number_format($product['daily_earning'], 2); ?><span class="usd-value">$</span></div>
                         </div>
                         <div class="product-stat">
                             <div class="product-stat-label">Profit rate</div>
@@ -366,7 +366,7 @@ foreach ($products as &$product) {
                         </div>
                         <div class="product-stat">
                             <div class="product-stat-label">Total profit</div>
-                            <div class="product-stat-value"><?php echo number_format($product['total_profit'], 2); ?><span class="RWF-value">RWF</span></div>
+                            <div class="product-stat-value"><?php echo number_format($product['total_profit'], 2); ?><span class="usd-value">$</span></div>
                         </div>
                     </div>
                 </div>
@@ -376,7 +376,7 @@ foreach ($products as &$product) {
                 <form method="post" action="">
                     <input type="hidden" name="product_id" value="<?php echo $product_id; ?>">
                     <button type="submit" name="purchase_product" class="purchase-button">
-                        <?php echo number_format($product['price'], 2); ?> RWF
+                        <?php echo number_format($product['price'], 2); ?> $
                         <span class="buy-now">Buy now</span>
                     </button>
                 </form>

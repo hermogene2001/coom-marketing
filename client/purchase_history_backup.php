@@ -207,7 +207,7 @@ while ($row = $result->fetch_assoc()) {
                     <div class="purchase-name"><?php echo $purchase['product_name']; ?></div>
                     <div class="purchase-info">
                         <div>Daily earning:</div>
-                        <div><?php echo number_format($purchase['daily_earning'], 2); ?> RWF</div>
+                        <div><?php echo number_format($purchase['daily_earning'], 2); ?> USD</div>
                     </div>
                     <div class="purchase-info">
                         <div>Purchase date:</div>
@@ -219,7 +219,7 @@ while ($row = $result->fetch_assoc()) {
                     </div>
                     <div class="purchase-info">
                         <div>Purchase amount:</div>
-                        <div><?php echo number_format($purchase['price'], 2); ?> RWF</div>
+                        <div><?php echo number_format($purchase['price'], 2); ?> USD</div>
                     </div>
                     <div class="purchase-status status-<?php echo strtolower($purchase['status']); ?>">
                         <?php echo ucfirst($purchase['status']); ?>

@@ -238,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <div class="user-balance">
                 <div class="balance-label">Available Balance</div>
-                <div class="balance-amount">RWF <?php echo number_format($user['balance'], 2); ?></div>
+                <div class="balance-amount">$ <?php echo number_format($user['balance'], 2); ?></div>
             </div>
             
             <?php if (isset($error)): ?>
@@ -253,11 +253,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h3 style="margin-bottom: 20px; color: var(--accent-color-light);">Withdrawal Information</h3>
                 <div class="info-item">
                     <span class="info-label">Minimum Withdrawal</span>
-                    <span class="info-value withdraw-limit">RWF 5,000</span>
+                    <span class="info-value withdraw-limit">$ 5,000</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Withdrawal Fee</span>
-                    <span class="info-value withdrawal-fee">RWF 200</span>
+                    <span class="info-value withdrawal-fee">$ 200</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Processing Time</span>
@@ -265,7 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="info-item">
                     <span class="info-label">Daily Limit</span>
-                    <span class="info-value">RWF 1,000,000</span>
+                    <span class="info-value">$ 1,000,000</span>
                 </div>
             </div>
             
@@ -273,7 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h3 style="margin-bottom: 20px; color: var(--accent-color-light);">Withdrawal Details</h3>
                 <form action="withdraw.php" method="post">
                     <div class="form-group">
-                        <label for="amount">Amount (RWF)</label>
+                        <label for="amount">Amount ($)</label>
                         <input type="number" id="amount" name="amount" min="5000" max="<?php echo $user['balance']; ?>" step="0.01" placeholder="Enter amount" required>
                     </div>
                     

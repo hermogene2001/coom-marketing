@@ -230,11 +230,11 @@ $recharge_data = $recharge_result->fetch_assoc();
         <div class="balance-container">
             <div class="balance-row">
                 <div>
-                    <div class="balance-label">Total balance (RWF)</div>
+                    <div class="balance-label">Total balance (USD)</div>
                     <div class="balance-amount"><?php echo number_format($user['balance'], 2); ?></div>
                 </div>
                 <div>
-                    <div class="balance-label">Recharge amount (RWF)</div>
+                    <div class="balance-label">Recharge amount (USD)</div>
                     <div class="balance-amount"><?php echo number_format($recharge_data['recharge_amount'], 2); ?></div>
                 </div>
             </div>

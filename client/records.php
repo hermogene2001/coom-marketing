@@ -217,9 +217,9 @@ $transactions_result = $stmt->get_result();
                         </div>
                         <div class="record-amount <?php echo $transaction['type']; ?>">
                             <?php if (in_array($transaction['type'], ['deposit', 'investment', 'referral_bonus'])): ?>
-                                +RWF <?php echo number_format($transaction['amount'], 2); ?>
+                                +$ <?php echo number_format($transaction['amount'], 2); ?>
                             <?php else: ?>
-                                -RWF <?php echo number_format($transaction['amount'], 2); ?>
+                                -$ <?php echo number_format($transaction['amount'], 2); ?>
                             <?php endif; ?>
                         </div>
                     </div>

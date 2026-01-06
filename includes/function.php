@@ -2,10 +2,11 @@
 
 function applyReferralBonus($userId, $rechargeAmount, $conn) {
     // Fetch the referrer (Level 1)
-    $sql = "SELECT referrer_id FROM users WHERE id = ?";
+    $sql = "SELECT invitation_code FROM users WHERE id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $userId);
     $stmt->execute();
+    $referrerId = null;
     $stmt->bind_result($referrerId);
     $stmt->fetch();
     $stmt->close();
@@ -27,10 +28,11 @@ function applyReferralBonus($userId, $rechargeAmount, $conn) {
         recordTransaction($referrerId, $level1Bonus, 'referral_bonus', $conn);
 
         // Fetch the referrer of the referrer (Level 2)
-        $sql = "SELECT referrer_id FROM users WHERE id = ?";
+        $sql = "SELECT invitation_code FROM users WHERE id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $referrerId);
         $stmt->execute();
+        $level2ReferrerId = null;
         $stmt->bind_result($level2ReferrerId);
         $stmt->fetch();
         $stmt->close();

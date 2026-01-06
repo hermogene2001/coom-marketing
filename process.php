@@ -45,7 +45,7 @@ class ProductEarningsProcessor {
             $this->log("Summary:");
             $this->log("- Total processed: {$this->processedCount}");
             $this->log("- Capital returns: {$this->capitalReturns}");
-            $this->log("- Total credited: {$this->totalCredited} RWF");
+            $this->log("- Total credited: {$this->totalCredited} USD");
             
         } catch (Exception $e) {
             $this->conn->rollback();
@@ -108,7 +108,7 @@ class ProductEarningsProcessor {
         $this->totalCredited += $creditAmount;
         
         $logMsg = "Processed user #{$userProduct['user_id']} ({$userProduct['first_name']}): ";
-        $logMsg .= "Product #{$userProduct['product_id']} - {$creditAmount} RWF";
+        $logMsg .= "Product #{$userProduct['product_id']} - {$creditAmount} USD";
         $logMsg .= $isLastDay ? " (with capital return)" : "";
         $this->log($logMsg);
     }

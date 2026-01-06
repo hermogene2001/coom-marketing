@@ -150,7 +150,7 @@ $referral_result = mysqli_query($conn, $referral_query);
                             <tr>
                                 <td><?php echo htmlspecialchars($referral['id']); ?></td>
                                 <td><?php echo htmlspecialchars($referral['phone_number']); ?></td>
-                                <td class="balance-positive"><?php echo number_format($referral['balance'], 2); ?> RWF</td>
+                                <td class="balance-positive"><?php echo number_format($referral['balance'], 2); ?> USD</td>
                             </tr>
                         <?php endwhile; ?>
                     </tbody>

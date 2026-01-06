@@ -91,7 +91,7 @@ $client_result = mysqli_query($conn, $client_query);
                         <td><?php echo htmlspecialchars($client['fname']); ?></td>
                         <td><?php echo htmlspecialchars($client['lname']); ?></td>
                         <td><?php echo htmlspecialchars($client['phone_number']); ?></td>
-                        <td><?php echo number_format($client['balance'], 2); ?> RWF</td>
+                        <td><?php echo number_format($client['balance'], 2); ?> USD</td>
                         <td>
                             <!-- Link to update balance -->
                             <a href="update_balance.php?client_id=<?php echo $client['id']; ?>" class="btn btn-primary">Update Balance</a>

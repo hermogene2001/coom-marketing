@@ -20,9 +20,9 @@ $user = $result->fetch_assoc();
 
 // Get referral statistics
 $referral_stats_query = "SELECT 
-                            (SELECT COUNT(*) FROM users WHERE referrer_id = ?) as total_referrals,
-                            (SELECT COUNT(*) FROM users WHERE referrer_id = ? AND vip_level > 0) as active_referrals,
-                            (SELECT SUM(amount) FROM transactions WHERE user_id IN (SELECT id FROM users WHERE referrer_id = ?) AND type = 'referral_bonus') as total_earnings";
+                            (SELECT COUNT(*) FROM users WHERE invitation_code = ?) as total_referrals,
+                            (SELECT COUNT(*) FROM users WHERE invitation_code = ? AND vip_level > 0) as active_referrals,
+                            (SELECT SUM(amount) FROM transactions WHERE user_id IN (SELECT id FROM users WHERE invitation_code = ?) AND type = 'referral_bonus') as total_earnings";
 $stmt = $conn->prepare($referral_stats_query);
 $stmt->bind_param("iii", $user_id, $user_id, $user_id);
 $stmt->execute();
@@ -32,7 +32,7 @@ $referral_stats = $referral_stats_result->fetch_assoc();
 // Get direct referrals (level 1)
 $direct_referrals_query = "SELECT id, first_name, last_name, email, created_at, balance, vip_level 
                            FROM users 
-                           WHERE referrer_id = ? 
+                           WHERE invitation_code = ? 
                            ORDER BY created_at DESC";
 $stmt = $conn->prepare($direct_referrals_query);
 $stmt->bind_param("i", $user_id);
@@ -279,7 +279,7 @@ $referral_earnings = $stmt->get_result();
                 <div class="stat-label">Active Referrals</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">RWF <?php echo number_format($referral_stats['total_earnings'] ?? 0, 2); ?></div>
+                <div class="stat-value">$ <?php echo number_format($referral_stats['total_earnings'] ?? 0, 2); ?></div>
                 <div class="stat-label">Total Earnings</div>
             </div>
         </div>
@@ -316,7 +316,7 @@ $referral_earnings = $stmt->get_result();
                             <div class="referral-date">Joined: <?php echo date('M j, Y', strtotime($referral['created_at'])); ?></div>
                         </div>
                         <div class="referral-amount">
-                            <div>RWF <?php echo number_format($referral['balance'], 2); ?></div>
+                            <div>$ <?php echo number_format($referral['balance'], 2); ?></div>
                             <div class="referral-level">VIP <?php echo $referral['vip_level']; ?></div>
                         </div>
                     </div>
@@ -337,7 +337,7 @@ $referral_earnings = $stmt->get_result();
                             <div class="referral-name">Referral Bonus</div>
                             <div class="referral-date"><?php echo date('M j, Y', strtotime($earning['created_at'])); ?></div>
                         </div>
-                        <div class="referral-amount deposit">+RWF <?php echo number_format($earning['amount'], 2); ?></div>
+                        <div class="referral-amount deposit">+$ <?php echo number_format($earning['amount'], 2); ?></div>
                     </div>
                 <?php endwhile; ?>
             <?php else: ?>

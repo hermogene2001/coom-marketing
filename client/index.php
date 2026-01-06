@@ -410,7 +410,7 @@ $market_data = [
                 </div>
                 <div class="user-info">
                     <div class="user-balance">
-                        Balance: <span class="amount">RWF <?php echo number_format($user['balance'], 2); ?></span>
+                        Balance: <span class="amount">$ <?php echo number_format($user['balance'], 2); ?></span>
                     </div>
                     <div class="user-email"><?php echo htmlspecialchars($user['email']); ?></div>
                 </div>
@@ -468,7 +468,7 @@ $market_data = [
                 <div class="portfolio-section">
                     <div class="portfolio-header">
                         <div class="portfolio-title">Your Portfolio</div>
-                        <div class="portfolio-value">RWF <?php echo number_format($user['balance'], 2); ?></div>
+                        <div class="portfolio-value">$ <?php echo number_format($user['balance'], 2); ?></div>
                     </div>
                     <div class="investments-list">
                         <?php if ($investments_result->num_rows > 0): ?>

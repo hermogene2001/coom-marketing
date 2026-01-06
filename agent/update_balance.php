@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="POST" action="">
             <div class="form-group">
-                <label for="balance">Current Balance (RWF)</label>
+                <label for="balance">Current Balance (USD)</label>
                 <input type="number" class="form-control" id="balance" name="balance" value="<?php echo htmlspecialchars($client['balance']); ?>" required>
             </div>
             <button type="submit" class="btn btn-primary">Update Balance</button>
