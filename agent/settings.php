@@ -193,27 +193,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="form-group">
                     <label for="fname"><i class="fas fa-user"></i> First Name</label>
                     <input type="text" class="form-control" id="fname" name="fname" 
-                           value="<?php echo htmlspecialchars($agent['first_name']); ?>" required>
+                           value="<?php echo htmlspecialchars($agent['first_name'] ?? ''); ?>" required>
                 </div>
                 <div class="form-group">
                     <label for="lname"><i class="fas fa-user"></i> Last Name</label>
                     <input type="text" class="form-control" id="lname" name="lname" 
-                           value="<?php echo htmlspecialchars($agent['last_name']); ?>" required>
+                           value="<?php echo htmlspecialchars($agent['last_name'] ?? ''); ?>" required>
                 </div>
                 <div class="form-group">
                     <label for="phone_number"><i class="fas fa-phone"></i> Phone Number</label>
                     <input type="text" class="form-control" id="phone_number" name="phone_number" 
-                           value="<?php echo htmlspecialchars($agent['phone_number']); ?>" required>
+                           value="<?php echo htmlspecialchars($agent['phone_number'] ?? ''); ?>" required>
                 </div>
                 <div class="form-group">
                     <label for="referral_code"><i class="fas fa-user-tag"></i> Referral Code</label>
                     <input type="text" class="form-control" id="referral_code" 
-                           value="<?php echo htmlspecialchars($agent['referral_code']); ?>" disabled>
+                           value="<?php echo htmlspecialchars($agent['referral_code'] ?? ''); ?>" disabled>
                 </div>
                 <div class="form-group">
                     <label for="binance_address"><i class="fab fa-btc"></i> Binance Address</label>
                     <input type="text" class="form-control" id="binance_address" name="binance_address" 
-                           value="<?php echo htmlspecialchars($agent['binance_address']); ?>" placeholder="Enter your Binance wallet address">
+                           value="<?php echo htmlspecialchars($agent['binance_address'] ?? ''); ?>" placeholder="Enter your Binance wallet address">
                     <small class="form-text text-muted">Enter your Binance wallet address to receive cryptocurrency deposits from clients</small>
                 </div>
                 <button type="submit" class="btn btn-primary">
@@ -229,12 +229,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div class="form-group">
                         <label for="client_phone"><i class="fas fa-phone"></i> Client Phone Number</label>
                         <input type="text" class="form-control" id="client_phone" 
-                               value="<?php echo htmlspecialchars($client['phone_number']); ?>" disabled>
+                               value="<?php echo htmlspecialchars($client['phone_number'] ?? ''); ?>" disabled>
                     </div>
                     <div class="form-group">
                         <label for="client_balance"><i class="fas fa-money-bill-wave"></i> Client Balance (RWF)</label>
                         <input type="number" step="0.01" class="form-control" id="client_balance" name="client_balance" 
-                               value="<?php echo htmlspecialchars($client['balance']); ?>" required>
+                               value="<?php echo htmlspecialchars($client['balance'] ?? ''); ?>" required>
                     </div>
                     <button type="submit" class="btn btn-success">
                         <i class="fas fa-check-circle me-2"></i>Update Balance

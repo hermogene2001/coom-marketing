@@ -369,6 +369,7 @@ if ($processing_withdrawals_result) {
                             <tr>
                                 <th>Client Phone</th>
                                 <th>Amount</th>
+                                <th>Payment Method</th>
                                 <th>Request Time</th>
                                 <th>Actions</th>
                             </tr>
@@ -378,6 +379,7 @@ if ($processing_withdrawals_result) {
                             <tr>
                                 <td><?php echo htmlspecialchars($recharge['client_phone_number']); ?></td>
                                 <td><?php echo htmlspecialchars($recharge['amount']); ?></td>
+                                <td><?php echo htmlspecialchars($recharge['payment_method']); ?></td>
                                 <td><?php echo htmlspecialchars($recharge['request_time']); ?></td>
                                 <td>
                                     <form method="post" action="" class="d-inline">
