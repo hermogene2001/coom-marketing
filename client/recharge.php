@@ -26,6 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate amount
     if ($amount <= 0) {
         $error = "Amount must be greater than 0";
+    } elseif ($amount < 20) {
+        $error = "Minimum recharge amount is 20 USD";
+    } elseif ($amount > 3000) {
+        $error = "Maximum recharge amount is 3000 USD";
     } else {
         if ($payment_method === 'binance') {
             // For Binance, find an agent with a Binance address
@@ -346,7 +350,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <form action="recharge.php" method="post">
                     <div class="form-group">
                         <label for="amount">Amount ($)</label>
-                        <input type="number" id="amount" name="amount" min="1" step="0.01" placeholder="Enter amount" required>
+                        <input type="number" id="amount" name="amount" min="20" max="3000" step="0.01" placeholder="Enter amount" required>
                     </div>
                     
                     <div class="form-group">

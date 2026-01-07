@@ -288,17 +288,17 @@ $referral_earnings = $stmt->get_result();
             <h3 style="margin-bottom: 15px; color: var(--accent-color-light);">Your Referral Link</h3>
             <p style="color: var(--text-secondary); margin-bottom: 15px;">Share this link to earn referral bonuses</p>
             <div class="referral-input">
-                <input type="text" class="referral-url" value="https://coom-marketing.com/auth/register?ref=<?php echo $user['referral_code']; ?>" readonly>
+                <input type="text" class="referral-url" value="https://coom-marketing.com/signup.php?ref=<?php echo $user['referral_code']; ?>" readonly>
                 <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
             </div>
             <div class="share-buttons">
-                <a href="https://wa.me/?text=<?php echo urlencode('Join COOM-MARKETING and start earning today! ' . 'https://coom-marketing.com/auth/register?ref=' . $user['referral_code']); ?>" class="share-btn whatsapp" target="_blank">
+                <a href="https://wa.me/?text=<?php echo urlencode('Join COOM-MARKETING and start earning today! ' . 'https://coom-marketing.com/signup.php?ref=' . $user['referral_code']); ?>" class="share-btn whatsapp" target="_blank">
                     <i class="fab fa-whatsapp"></i>
                 </a>
-                <a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode('https://coom-marketing.com/auth/register?ref=' . $user['referral_code']); ?>" class="share-btn facebook" target="_blank">
+                <a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo urlencode('https://coom-marketing.com/signup.php?ref=' . $user['referral_code']); ?>" class="share-btn facebook" target="_blank">
                     <i class="fab fa-facebook-f"></i>
                 </a>
-                <a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join COOM-MARKETING and start earning today! ' . 'https://coom-marketing.com/auth/register?ref=' . $user['referral_code']); ?>" class="share-btn twitter" target="_blank">
+                <a href="https://twitter.com/intent/tweet?text=<?php echo urlencode('Join COOM-MARKETING and start earning today! ' . 'https://coom-marketing.com/signup.php?ref=' . $user['referral_code']); ?>" class="share-btn twitter" target="_blank">
                     <i class="fab fa-twitter"></i>
                 </a>
             </div>

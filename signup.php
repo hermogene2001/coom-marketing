@@ -1,7 +1,7 @@
 <?php if (session_status() === PHP_SESSION_NONE) session_start();?>
 <?php
 // Pre-fill the invitation code from the URL if available
-$referralCode = isset($_GET['referral_code']) ? $_GET['referral_code'] : '';
+$referralCode = isset($_GET['ref']) ? $_GET['ref'] : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">

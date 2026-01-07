@@ -285,6 +285,10 @@ $transactions_result = $stmt->get_result();
                         <div class="action-icon"><i class="fas fa-user"></i></div>
                         <div class="action-text">Profile</div>
                     </a>
+                    <a href="team.php" class="action-btn">
+                        <div class="action-icon"><i class="fas fa-users"></i></div>
+                        <div class="action-text">My Team</div>
+                    </a>
                     <a href="products.php" class="action-btn">
                         <div class="action-icon"><i class="fas fa-chart-pie"></i></div>
                         <div class="action-text">Invest</div>

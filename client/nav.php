@@ -5,18 +5,17 @@
 
 <style>
     .nav-container {
-        position: relative;
-        top: 0;
+        position: fixed;
+        bottom: 0;
         width: 100%;
         background-color: var(--card-bg);
         display: flex;
         justify-content: space-around;
         padding: 12px 0;
-        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.2);
         z-index: 1000;
-        border-bottom: 1px solid var(--border-color);
+        border-top: 1px solid var(--border-color);
         height: 50px;
-        margin-top: 20px;
     }
     
     .nav-item {
@@ -130,6 +129,10 @@
     .social-item:hover {
         background-color: var(--secondary-bg);
         color: var(--accent-color-light);
+    }
+    
+    .page-content {
+        padding-bottom: 60px; /* Space for fixed bottom navigation */
     }
     
     /* Responsive design */

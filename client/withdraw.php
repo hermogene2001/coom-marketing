@@ -24,11 +24,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $payment_method = $_POST['payment_method'];
     $account_number = $_POST['account_number'];
     
+    // Calculate withdrawal fee (8% of amount)
+    $withdrawal_fee = $amount * 0.08;
+    $total_deduction = $amount + $withdrawal_fee;
+    
     // Validate amount
     if ($amount <= 0) {
         $error = "Amount must be greater than 0";
-    } elseif ($amount > $user['balance']) {
-        $error = "Insufficient balance for withdrawal";
+    } elseif ($amount < 5) {
+        $error = "Minimum withdrawal amount is 5 USD";
+    } elseif ($amount > 3000) {
+        $error = "Maximum withdrawal amount is 3000 USD";
+    } elseif ($total_deduction > $user['balance']) {
+        $error = "Insufficient balance for withdrawal and fees";
     } else {
         // For Binance withdrawals, the account_number will be the user's Binance address
         if ($payment_method === 'binance') {
@@ -37,17 +45,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Please provide your Binance address for receiving your funds.";
             } else {
                 // Create withdrawal request with Binance address in wallet_address field
-                $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
-                $stmt->bind_param("isss", $user_id, $amount, $payment_method, $account_number);
+                $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, fee, created_at) VALUES (?, ?, ?, ?, 'pending', ?, NOW())");
+                $stmt->bind_param("isssd", $user_id, $amount, $payment_method, $account_number, $withdrawal_fee);
             }
         } else {
             // For non-Binance methods, proceed as before
-            $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
-            $stmt->bind_param("isss", $user_id, $amount, $payment_method, $account_number);
+            $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, fee, created_at) VALUES (?, ?, ?, ?, 'pending', ?, NOW())");
+            $stmt->bind_param("isssd", $user_id, $amount, $payment_method, $account_number, $withdrawal_fee);
         }
         
         if ($stmt->execute()) {
-            $success = "Withdrawal request submitted successfully. It will be processed within 24 hours.";
+            $success = "Withdrawal request of $" . number_format($amount, 2) . " submitted successfully. An 8% fee ($" . number_format($withdrawal_fee, 2) . ") will be deducted from your account. Total deduction: $" . number_format($total_deduction, 2) . ". It will be processed within 24 hours.";
             
             // If payment method is binance, prepare for crypto withdrawal
             if ($payment_method === 'binance') {
@@ -286,19 +294,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h3 style="margin-bottom: 20px; color: var(--accent-color-light);">Withdrawal Information</h3>
                 <div class="info-item">
                     <span class="info-label">Minimum Withdrawal</span>
-                    <span class="info-value withdraw-limit">$ 5,000</span>
+                    <span class="info-value withdraw-limit">$ 5</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Withdrawal Fee</span>
-                    <span class="info-value withdrawal-fee">$ 200</span>
+                    <span class="info-value withdrawal-fee">8% of withdrawal amount</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Processing Time</span>
                     <span class="info-value">24 hours</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Daily Limit</span>
-                    <span class="info-value">$ 1,000,000</span>
+                    <span class="info-label">Maximum Withdrawal</span>
+                    <span class="info-value">$ 3,000</span>
                 </div>
             </div>
             
@@ -307,7 +315,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <form action="withdraw.php" method="post">
                     <div class="form-group">
                         <label for="amount">Amount ($)</label>
-                        <input type="number" id="amount" name="amount" min="5000" max="<?php echo $user['balance']; ?>" step="0.01" placeholder="Enter amount" required>
+                        <input type="number" id="amount" name="amount" min="5" max="<?php echo min(3000, $user['balance']); ?>" step="0.01" placeholder="Enter amount" required>
                     </div>
                     
                     <div class="form-group">
