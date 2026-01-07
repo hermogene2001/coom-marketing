@@ -71,21 +71,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $recharge_id = $conn->insert_id;
                 
                 // Find a random agent to handle this recharge
-                $agent_query = "SELECT id FROM users WHERE role = 'agent' ORDER BY RAND() LIMIT 1";
+                $agent_query = "SELECT id, phone_number, payment_number, payment_details FROM users WHERE role = 'agent' ORDER BY RAND() LIMIT 1";
                 $agent_result = $conn->query($agent_query);
                 
                 if ($agent_result->num_rows > 0) {
                     $agent = $agent_result->fetch_assoc();
                     $agent_id = $agent['id'];
+                    $agent_phone = $agent['phone_number'];
+                    $agent_payment_number = $agent['payment_number'];
+                    $agent_payment_details = $agent['payment_details'];
                     
                     // Assign the recharge to the selected agent
                     $assign_stmt = $conn->prepare("INSERT INTO recharge_agent_assignments (recharge_id, agent_id) VALUES (?, ?)");
                     $assign_stmt->bind_param("ii", $recharge_id, $agent_id);
                     $assign_stmt->execute();
                     $assign_stmt->close();
+                    
+                    // Create success message with agent payment details
+                    $agent_payment_info = array();  // Store agent payment information
+                    if (!empty($agent_payment_details)) {
+                        $agent_payment_info['details'] = $agent_payment_details;
+                    }
+                    if (!empty($agent_payment_number)) {
+                        $agent_payment_info['number'] = $agent_payment_number;
+                    }
+                    if (!empty($agent_phone)) {
+                        $agent_payment_info['phone'] = $agent_phone;
+                    }
+                                    
+                    $success = "Recharge request submitted successfully. A random agent has been assigned to process your request.";
+                } else {
+                    $success = "Recharge request submitted successfully. Please complete the payment using the details below.";
                 }
-                
-                $success = "Recharge request submitted successfully. A random agent has been assigned to process your request. Please complete the payment using the details below.";
             } else {
                 $error = "Failed to submit recharge request: " . $conn->error;
             }
@@ -338,6 +355,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .copy-btn:hover {
             background-color: var(--accent-color-light);
         }
+        
+        .agent-payment-details {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid var(--border-color);
+        }
+        
+        .payment-info-item {
+            margin-bottom: 15px;
+        }
+        
+        .payment-info-item label {
+            display: block;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .payment-value {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .payment-value span {
+            flex-grow: 1;
+            background-color: var(--secondary-bg);
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -359,6 +410,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <?php if (isset($success)): ?>
                 <div class="success-message"><?php echo htmlspecialchars($success); ?></div>
+                
+                <?php if (isset($agent_payment_info) && !empty($agent_payment_info)): ?>
+                <div class="agent-payment-details">
+                    <h4>Agent Payment Details</h4>
+                    <?php if (isset($agent_payment_info['details'])): ?>
+                    <div class="payment-info-item">
+                        <label>Payment Details:</label>
+                        <div class="payment-value">
+                            <span id="paymentDetails"><?php echo htmlspecialchars($agent_payment_info['details']); ?></span>
+                            <button class="copy-btn" onclick="copyToClipboard('paymentDetails')">Copy</button>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($agent_payment_info['number'])): ?>
+                    <div class="payment-info-item">
+                        <label>Account Number:</label>
+                        <div class="payment-value">
+                            <span id="accountNumber"><?php echo htmlspecialchars($agent_payment_info['number']); ?></span>
+                            <button class="copy-btn" onclick="copyToClipboard('accountNumber')">Copy</button>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($agent_payment_info['phone'])): ?>
+                    <div class="payment-info-item">
+                        <label>Phone:</label>
+                        <div class="payment-value">
+                            <span id="agentPhone"><?php echo htmlspecialchars($agent_payment_info['phone']); ?></span>
+                            <button class="copy-btn" onclick="copyToClipboard('agentPhone')">Copy</button>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
             <?php endif; ?>
             
             <div class="form-container">
@@ -403,7 +489,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="deposit-address">
                         <?php echo htmlspecialchars($binance_deposit_address); ?>
                     </div>
-                    <button class="copy-btn" onclick="copyToClipboard('<?php echo $binance_deposit_address; ?>')">Copy Address</button>
+                    <button class="copy-btn" onclick="copyToClipboard('<?php echo addslashes($binance_deposit_address); ?>')">Copy Address</button>
                     <p><strong>Amount to Send:</strong> <?php echo number_format($amount, 2); ?> USD (or equivalent in USDT)</p>
                     <p><strong>Important:</strong> Send the exact amount to the address above. After sending, your recharge will be pending agent approval.</p>
                     <p>Do not send from an exchange wallet that requires KYC verification as this may prevent your deposit from being credited.</p>
@@ -434,17 +520,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
         
-        // Function to copy address to clipboard
-        function copyToClipboard(text) {
+        // Function to copy address to clipboard - supports both text and element ID
+        function copyToClipboard(input) {
+            let textToCopy;
+            
+            // Check if input is an element ID
+            if (typeof input === 'string' && document.getElementById(input)) {
+                textToCopy = document.getElementById(input).textContent || document.getElementById(input).innerText;
+            } else {
+                textToCopy = input;
+            }
+            
             const textarea = document.createElement('textarea');
-            textarea.value = text;
+            textarea.value = textToCopy;
             document.body.appendChild(textarea);
             textarea.select();
             document.execCommand('copy');
             document.body.removeChild(textarea);
             
             // Show feedback
-            const copyBtn = document.querySelector('.copy-btn');
+            const copyBtn = event.target;
             const originalText = copyBtn.textContent;
             copyBtn.textContent = 'Copied!';
             setTimeout(() => {
