@@ -12,12 +12,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone_number = $_POST['phone_number'];
     $role = $_POST['role'];
     $balance = $_POST['balance'];
-    $active = isset($_POST['active']) ? 1 : 0; // If checkbox is checked, active = 1, otherwise 0
+    $status = isset($_POST['active']) ? 'active' : 'inactive'; // If checkbox is checked, status = 'active', otherwise 'inactive'
     
     // Update user information
-    $sql = "UPDATE users SET phone_number = ?, role = ?, balance = ?, active = ? WHERE id = ?";
+    $sql = "UPDATE users SET phone_number = ?, role = ?, balance = ?, status = ? WHERE id = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssdii", $phone_number, $role, $balance, $active, $id);
+    $stmt->bind_param("ssdsi", $phone_number, $role, $balance, $status, $id);
     
     if ($stmt->execute()) {
         $_SESSION['success_message'] = "User updated successfully!";
