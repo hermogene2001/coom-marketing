@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $assigned_binance_address = $agent['binance_address'];
                 
                 // Create recharge request with source phone and status 'pending_agent_assignment'
-                $stmt = $conn->prepare("INSERT INTO recharges (user_id, amount, payment_method, source_phone, status, created_at) VALUES (?, ?, ?, ?, 'pending_agent_assignment', NOW())");
+                $stmt = $conn->prepare("INSERT INTO recharges (client_id, amount, payment_method, source_phone, status) VALUES (?, ?, ?, ?, 'pending_agent_assignment')");
                 $stmt->bind_param("idss", $user_id, $amount, $payment_method, $user['phone_number']);
                 
                 if ($stmt->execute()) {
@@ -64,12 +64,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             // For non-Binance methods, proceed as before
-            $stmt = $conn->prepare("INSERT INTO recharges (user_id, amount, payment_method, source_phone, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
+            $stmt = $conn->prepare("INSERT INTO recharges (client_id, amount, payment_method, source_phone, status) VALUES (?, ?, ?, ?, 'pending')");
             $stmt->bind_param("idss", $user_id, $amount, $payment_method, $user['phone_number']);
             
             if ($stmt->execute()) {
-                $success = "Recharge request submitted successfully. Please complete the payment using the details below.";
                 $recharge_id = $conn->insert_id;
+                
+                // Find a random agent to handle this recharge
+                $agent_query = "SELECT id FROM users WHERE role = 'agent' ORDER BY RAND() LIMIT 1";
+                $agent_result = $conn->query($agent_query);
+                
+                if ($agent_result->num_rows > 0) {
+                    $agent = $agent_result->fetch_assoc();
+                    $agent_id = $agent['id'];
+                    
+                    // Assign the recharge to the selected agent
+                    $assign_stmt = $conn->prepare("INSERT INTO recharge_agent_assignments (recharge_id, agent_id) VALUES (?, ?)");
+                    $assign_stmt->bind_param("ii", $recharge_id, $agent_id);
+                    $assign_stmt->execute();
+                    $assign_stmt->close();
+                }
+                
+                $success = "Recharge request submitted successfully. A random agent has been assigned to process your request. Please complete the payment using the details below.";
             } else {
                 $error = "Failed to submit recharge request: " . $conn->error;
             }

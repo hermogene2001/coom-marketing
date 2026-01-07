@@ -145,9 +145,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         if ($action === 'approve') {
             // Update withdrawal status to 'processing' and set processed time
-            $approve_withdrawal_query = "UPDATE withdrawals SET status = 'processing', processed_at = NOW() WHERE id = ? AND status = 'pending'";
+            $approve_withdrawal_query = "UPDATE withdrawals w JOIN withdrawal_agent_assignments wa ON w.id = wa.withdrawal_id SET w.status = 'processing', w.processed_at = NOW() WHERE w.id = ? AND w.status = 'pending' AND wa.agent_id = ?";
             $stmt = $conn->prepare($approve_withdrawal_query);
-            $stmt->bind_param("i", $withdrawal_id);
+            $stmt->bind_param("ii", $withdrawal_id, $_SESSION['user_id']);
             $stmt->execute();
             
             if ($stmt->affected_rows > 0) {
@@ -176,9 +176,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
         } elseif ($action === 'reject') {
             // Get withdrawal amount to restore to user balance
-            $get_withdrawal = "SELECT user_id, amount, fee FROM withdrawals WHERE id = ? AND status = 'pending'";
+            $get_withdrawal = "SELECT w.user_id, w.amount, w.fee FROM withdrawals w JOIN withdrawal_agent_assignments wa ON w.id = wa.withdrawal_id WHERE w.id = ? AND w.status = 'pending' AND wa.agent_id = ?";
             $stmt = $conn->prepare($get_withdrawal);
-            $stmt->bind_param("i", $withdrawal_id);
+            $stmt->bind_param("ii", $withdrawal_id, $_SESSION['user_id']);
             $stmt->execute();
             $stmt->bind_result($userId, $amount, $fee);
             $hasRecord = $stmt->fetch();
@@ -225,9 +225,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         } elseif ($action === 'complete') {
             // Mark a processing withdrawal as completed
-            $complete_withdrawal_query = "UPDATE withdrawals SET status = 'completed' WHERE id = ? AND status = 'processing'";
+            $complete_withdrawal_query = "UPDATE withdrawals w JOIN withdrawal_agent_assignments wa ON w.id = wa.withdrawal_id SET w.status = 'completed' WHERE w.id = ? AND w.status = 'processing' AND wa.agent_id = ?";
             $stmt = $conn->prepare($complete_withdrawal_query);
-            $stmt->bind_param("i", $withdrawal_id);
+            $stmt->bind_param("ii", $withdrawal_id, $_SESSION['user_id']);
             $stmt->execute();
             
             if ($stmt->affected_rows > 0) {
@@ -272,11 +272,14 @@ $pending_withdrawals_query = "
     FROM withdrawals w 
     JOIN users u ON w.user_id = u.id 
     JOIN withdrawal_methods m ON w.method_id = m.id
-    WHERE w.status = 'pending'
+    JOIN withdrawal_agent_assignments wa ON w.id = wa.withdrawal_id
+    WHERE w.status = 'pending' AND wa.agent_id = ?
     ORDER BY w.created_at ASC
 ";
-$pending_withdrawals_result = $conn->query($pending_withdrawals_query);
-$pending_withdrawals = [];
+$stmt = $conn->prepare($pending_withdrawals_query);
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+$pending_withdrawals_result = $stmt->get_result();
 if ($pending_withdrawals_result) {
     while ($row = $pending_withdrawals_result->fetch_assoc()) {
         $pending_withdrawals[] = $row;
@@ -290,10 +293,14 @@ $processing_withdrawals_query = "
     FROM withdrawals w 
     JOIN users u ON w.user_id = u.id 
     JOIN withdrawal_methods m ON w.method_id = m.id
-    WHERE w.status = 'processing'
+    JOIN withdrawal_agent_assignments wa ON w.id = wa.withdrawal_id
+    WHERE w.status = 'processing' AND wa.agent_id = ?
     ORDER BY w.processed_at ASC
 ";
-$processing_withdrawals_result = $conn->query($processing_withdrawals_query);
+$stmt2 = $conn->prepare($processing_withdrawals_query);
+$stmt2->bind_param("i", $_SESSION['user_id']);
+$stmt2->execute();
+$processing_withdrawals_result = $stmt2->get_result();
 $processing_withdrawals = [];
 if ($processing_withdrawals_result) {
     while ($row = $processing_withdrawals_result->fetch_assoc()) {

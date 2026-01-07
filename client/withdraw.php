@@ -45,17 +45,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Please provide your Binance address for receiving your funds.";
             } else {
                 // Create withdrawal request with Binance address in wallet_address field
-                $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, fee, created_at) VALUES (?, ?, ?, ?, 'pending', ?, NOW())");
+                $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, fee) VALUES (?, ?, ?, ?, 'pending', ?)");
                 $stmt->bind_param("isssd", $user_id, $amount, $payment_method, $account_number, $withdrawal_fee);
             }
         } else {
             // For non-Binance methods, proceed as before
-            $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, fee, created_at) VALUES (?, ?, ?, ?, 'pending', ?, NOW())");
+            $stmt = $conn->prepare("INSERT INTO withdrawals (user_id, amount, payment_method, wallet_address, status, fee) VALUES (?, ?, ?, ?, 'pending', ?)");
             $stmt->bind_param("isssd", $user_id, $amount, $payment_method, $account_number, $withdrawal_fee);
         }
         
         if ($stmt->execute()) {
-            $success = "Withdrawal request of $" . number_format($amount, 2) . " submitted successfully. An 8% fee ($" . number_format($withdrawal_fee, 2) . ") will be deducted from your account. Total deduction: $" . number_format($total_deduction, 2) . ". It will be processed within 24 hours.";
+            $withdrawal_id = $conn->insert_id;
+            
+            // Find a random agent to handle this withdrawal
+            $agent_query = "SELECT id FROM users WHERE role = 'agent' ORDER BY RAND() LIMIT 1";
+            $agent_result = $conn->query($agent_query);
+            
+            if ($agent_result->num_rows > 0) {
+                $agent = $agent_result->fetch_assoc();
+                $agent_id = $agent['id'];
+                
+                // Assign the withdrawal to the selected agent
+                $assign_stmt = $conn->prepare("INSERT INTO withdrawal_agent_assignments (withdrawal_id, agent_id) VALUES (?, ?)");
+                $assign_stmt->bind_param("ii", $withdrawal_id, $agent_id);
+                $assign_stmt->execute();
+                $assign_stmt->close();
+            }
+            
+            // Update the success message to indicate the withdrawal has been assigned
+            $success = "Withdrawal request of $" . number_format($amount, 2) . " submitted successfully. An 8% fee ($" . number_format($withdrawal_fee, 2) . ") will be deducted from your account. Total deduction: $" . number_format($total_deduction, 2) . ". A random agent has been assigned to process your request. It will be processed within 24 hours.";
             
             // If payment method is binance, prepare for crypto withdrawal
             if ($payment_method === 'binance') {
